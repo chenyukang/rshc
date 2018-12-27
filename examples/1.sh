@@ -1,5 +1,4 @@
-#!/usr/bin/expect -f
-spawn ssh kang@192.168.3.4
+spawn ssh yukang@127.0.0.1
 expect "Password:"
 send "xx\r"
 expect "%"

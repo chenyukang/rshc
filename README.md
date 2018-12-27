@@ -1,3 +1,3 @@
 # rsh
 
-Rust compile shell to binary.
+Rust compile shell to Rust code and binary.

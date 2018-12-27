@@ -1,18 +1,32 @@
 extern crate crypto;
-use crypto::{rc4::Rc4, symmetriccipher::SynchronousStreamCipher};
+use crypto::rc4::Rc4;
+use crypto::symmetriccipher::SynchronousStreamCipher;
 use std::iter::repeat;
 
 pub fn encode(input: String, key: String) -> Vec<u8> {
+    return encode_vec(input.as_bytes().to_vec(), key);
+}
+
+pub fn encode_vec(input: Vec<u8>, key: String) -> Vec<u8> {
     let mut rc4 = Rc4::new(key.as_bytes());
-    let bytes = input.as_bytes();
-    let mut output: Vec<u8> = repeat(0).take(bytes.len()).collect();
-    rc4.process(&bytes, &mut output);
+    let mut output: Vec<u8> = repeat(0).take(input.len()).collect();
+    rc4.process(&input, &mut output);
     return output.to_vec();
 }
 
 #[cfg(test)]
 mod tests {
     use super::encode;
+    use super::encode_vec;
+
+    #[test]
+    fn test_encode_decode() {
+        let content = String::from("ahah, this is hello world!");
+        let encoded = encode(content.clone(), "hello".to_string());
+        let decoded = encode_vec(encoded, "hello".to_string());
+        let result = String::from_utf8_lossy(&decoded);
+        assert!(result == content);
+    }
 
     #[test]
     fn test_encode() {
