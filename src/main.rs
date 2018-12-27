@@ -52,6 +52,12 @@ fn main() {
              .help("the script source file")
              .required(true)
              .takes_value(true))
+        .arg(Arg::with_name("pass")
+             .short("p")
+             .long("pass")
+             .value_name("PASS")
+             .help("the password used to run the script")
+             .takes_value(true))
         .arg(Arg::with_name("out")
              .short("o")
              .long("out")
@@ -68,18 +74,19 @@ fn main() {
 
     let file = matches.value_of("file").unwrap();
     let output = matches.value_of("out").unwrap_or("");
+    let pass = matches.value_of("pass").unwrap_or("");
     let rs_file = if output == "" {
             file.to_owned() + ".rs"
         } else {
             output.to_owned()
         };
 
-
     let content = fs::read_to_string(file).expect("Failed to read source file");
     let _encoded = lib::encode(content.clone(), "hello".to_string());
     let encoded_str = format!("vec!{:?}\n", content.as_bytes());
-    let prog = fs::read_to_string("./prog.rs").expect("Failed to read prog file");
-    let prog = prog.replace("{script_code}", &encoded_str);
+    let prog = fs::read_to_string("./src/prog.rs").expect("Failed to read prog file");
+    let prog = prog.replace("{script_code}", &encoded_str)
+        .replace("{pass}", &format!("\"{}\"", pass));
 
     File::create(&rs_file).unwrap().write_all(prog.as_bytes()).unwrap();
     compile_it(&rs_file);
