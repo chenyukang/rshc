@@ -72,7 +72,7 @@ fn main() {
     let prog = fs::read_to_string("./src/prog.rs").expect("Failed to read prog file");
     let prog = prog
         .replace("{ script_code }", &encoded_str)
-        .replace("{ pass }", &format!("\"{}\"", pass))
+        .replace("{ pass }", &pass)
         .replace("{ interp }", &interp);
 
     File::create(&rs_file)

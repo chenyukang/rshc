@@ -19,7 +19,7 @@ fn run_process(iterp: &String, prog: &String) {
 
 fn main() {
     let prog = { script_code };
-    let pass = { pass };
+    let pass = "{ pass }";
     let iterp = "{ interp }";
     //println!("res: {:?}", prog);
 
