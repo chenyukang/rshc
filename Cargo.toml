@@ -5,8 +5,9 @@ description = "rsh: Rust compile shell script(or expect script) to Rust code and
 authors = ["Yukang <moorekang@gmail.com>"]
 edition = "2018"
 keywords = ["shell", "binary", "script"]
-
-homepage = "https://github.com/chenyukang/rsh"
+homepage = "https://github.com/chenyukang"
+repository  = "https://github.com/chenyukang/rsh"
+readme      = "README.md"
 license = "MIT"
 
 
