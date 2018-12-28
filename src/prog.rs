@@ -2,19 +2,23 @@ use std::io;
 use std::io::Write;
 use std::process;
 use std::process::{Command, Stdio};
+use std::env;
 
-fn run_process(iterp: &String, prog: &String) {
+
+fn run_process(iterp: &String, prog: &String, args: &Vec<String>) {
+    let prog = format!("{}", prog.to_owned());
+    //println!("{}", prog);
     let output = Command::new(iterp)
         .arg("-c")
         .arg(prog)
+        .args(args)
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
         .output()
         .expect("failed to execute process");
-
-    let stderr = output.stderr;
-
-    println!("stderr: {}", String::from_utf8_lossy(&stderr));
+    //println!("status: {}", output.status.code().unwrap());
+    std::process::exit(output.status.code().unwrap());
 }
 
 fn main() {
@@ -37,6 +41,9 @@ fn main() {
         }
     }
     let prog_str = String::from_utf8(prog).unwrap();
+
     //println!("running ...:\n {}", prog_str);
-    run_process(&iterp.to_string(), &prog_str);
+    let mut args = env::args().collect::<Vec<_>>();
+    args[0] = String::from("");
+    run_process(&iterp.to_string(), &prog_str, &args);
 }

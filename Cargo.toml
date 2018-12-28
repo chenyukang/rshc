@@ -2,6 +2,7 @@
 name = "rsh"
 version = "0.1.0"
 authors = ["Yukang <moorekang@gmail.com>"]
+edition = "2018"
 
 [dependencies]
 rust-crypto = "^0.2"

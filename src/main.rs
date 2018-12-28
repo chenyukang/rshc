@@ -1,6 +1,4 @@
 extern crate clap;
-extern crate crypto;
-
 extern crate dialoguer;
 
 use dialoguer::{theme::ColorfulTheme, PasswordInput};
@@ -67,7 +65,7 @@ fn main() {
     let content = fs::read_to_string(file).expect("Failed to read source file");
     let _encoded = util::encode(content.clone(), "hello".to_string()); // we need to encode it latter
     let (interp, content) = util::find_interp(&content);
-    println!("{}", content);
+    //println!("{}", content);
     let encoded_str = format!("vec!{:?}\n", content.as_bytes());
     let prog = fs::read_to_string("./src/prog.rs").expect("Failed to read prog file");
     let prog = prog

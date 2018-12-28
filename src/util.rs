@@ -1,4 +1,3 @@
-extern crate crypto;
 use crypto::rc4::Rc4;
 use crypto::symmetriccipher::SynchronousStreamCipher;
 use std::iter::repeat;
