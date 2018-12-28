@@ -125,23 +125,24 @@ mod tests {
         let mut elems: Vec<&str> = exe.to_str().unwrap().split("/").collect();
         unsafe { elems.set_len(elems.len() - 4); }
         let path = elems.join("/") + "/examples/";
-
+        let mut errors = vec![];
         let files = fs::read_dir(path.to_owned()).unwrap();
         for file in files {
             let p = file.unwrap().path();
             let s = p.to_str().unwrap();
-            println!("Name: {}", s);
             if !s.ends_with("_out") {
                 let out = format!("{}.new_out", s);
-                println!("new_out: {}", out);
                 gen_and_compile(s, &out.to_owned(), "");
-                let new_out = fs::read_to_string(out.clone()).unwrap();
-                let gen_out = fs::read_to_string(out.replace(".new_out", ".gen_out")).unwrap();
-                assert!(new_out == gen_out);
+                let new_out = fs::read_to_string(out.clone()).unwrap_or("".to_string());
+                let gen_out = fs::read_to_string(out.replace(".new_out", ".gen_out")).unwrap_or("".to_string());
+                if new_out != gen_out {
+                    errors.push(s.to_owned());
+                }
+                // assert!(new_out == gen_out);
             }
-
         }
-        assert!("pwd" == "pwd");
+        println!("diff: {:?}", errors);
+        assert!(errors.len() == 0);
     }
 
     #[test]
