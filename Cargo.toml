@@ -1,8 +1,15 @@
 [package]
 name = "rsh"
 version = "0.1.0"
+description = "rsh: Rust compile shell script(or expect script) to Rust code and binary."
 authors = ["Yukang <moorekang@gmail.com>"]
 edition = "2018"
+keywords = ["shell", "binary", "script"]
+
+homepage = "https://github.com/chenyukang/rsh"
+license = "MIT"
+license-file = "https://github.com/chenyukang/rsh/blob/master/LICENSE"
+
 
 [dependencies]
 rust-crypto = "^0.2"
