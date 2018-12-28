@@ -1,5 +1,7 @@
 # rshc
 
+[![Build Status](https://travis-ci.com/chenyukang/rshc.svg?branch=master)](https://travis-ci.com/chenyukang/rshc)
+
 rshc: Compile shell script(or expect script) to Rust code and binary.
 
 Rshc takes a script, which is specified on the command line and produces Rust source code. 
