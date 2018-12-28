@@ -27,8 +27,7 @@ fn main() {
     let prog = { script_code };
     let pass = "{ pass }";
     let iterp = "{ interp }";
-    //println!("res: {:?}", prog);
-
+    
     if pass.len() != 0 {
         let mut input = String::new();
         print!("Password: ");
