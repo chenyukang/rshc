@@ -6,7 +6,7 @@ authors = ["Yukang <moorekang@gmail.com>"]
 edition = "2018"
 keywords = ["shell", "binary", "script"]
 homepage = "https://github.com/chenyukang"
-repository  = "https://github.com/chenyukang/rsh"
+repository  = "https://github.com/chenyukang/rshc"
 readme      = "README.md"
 license = "MIT"
 
