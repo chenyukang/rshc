@@ -10,6 +10,8 @@ use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
 
+
+
 fn main() {
     let matches = App::new("Shell script compiled to Rustc code and binary")
         .version("0.1")
@@ -62,13 +64,65 @@ fn main() {
         output.to_owned()
     };
 
+    let template = r###"
+use std::io;
+use std::io::Write;
+use std::process;
+use std::process::{Command, Stdio};
+use std::env;
+
+
+fn run_process(iterp: &String, prog: &String, args: &Vec<String>) {
+    let prog = format!("{}", prog.to_owned());
+    //println!("{}", prog);
+    let output = Command::new(iterp)
+        .arg("-c")
+        .arg(prog)
+        .args(args)
+        .stdin(Stdio::inherit())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .output()
+        .expect("failed to execute process");
+    //println!("status: {}", output.status.code().unwrap());
+    std::process::exit(output.status.code().unwrap());
+}
+
+fn main() {
+    let prog = { script_code };
+    let pass = "{ pass }";
+    let iterp = "{ interp }";
+    //println!("res: {:?}", prog);
+
+    if pass.len() != 0 {
+        let mut input = String::new();
+        print!("Password: ");
+        io::stdout().flush().ok();
+        io::stdin()
+            .read_line(&mut input)
+            .ok()
+            .expect("Couldn't read password");
+        if input.trim() != pass {
+            println!("Invalid password!");
+            process::exit(1);
+        }
+    }
+    let prog_str = String::from_utf8(prog).unwrap();
+
+    //println!("running ...:\n {}", prog_str);
+    let mut args = env::args().collect::<Vec<_>>();
+    args[0] = String::from("");
+    run_process(&iterp.to_string(), &prog_str, &args);
+}
+"###;
+
     let content = fs::read_to_string(file).expect("Failed to read source file");
     let _encoded = util::encode(content.clone(), "hello".to_string()); // we need to encode it latter
     let (interp, content) = util::find_interp(&content);
     //println!("{}", content);
     let encoded_str = format!("vec!{:?}\n", content.as_bytes());
-    let prog = fs::read_to_string("./src/prog.rs").expect("Failed to read prog file");
-    let prog = prog
+    // let prog = fs::read_to_string("./src/prog.rs").expect("Failed to read prog file");
+    let prog = template
         .replace("{ script_code }", &encoded_str)
         .replace("{ pass }", &pass)
         .replace("{ interp }", &interp);
