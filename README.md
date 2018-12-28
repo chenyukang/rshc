@@ -4,7 +4,7 @@
 
 rshc: Compile shell script(or expect script) to Rust code and binary.
 
-**This is an script obfuscator rather than a real compiler! ***
+**This is an script obfuscator rather than a real compiler!**
 
 Rshc takes a script, which is specified on the command line and produces Rust source code. 
 
