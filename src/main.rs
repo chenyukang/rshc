@@ -75,8 +75,9 @@ use std::env;
 fn run_process(iterp: &String, prog: &String, args: &Vec<String>) {
     let prog = format!("{}", prog.to_owned());
     //println!("{}", prog);
+    let opt = if iterp == "ruby" { "-e" } else { "-c" };
     let output = Command::new(iterp)
-        .arg("-c")
+        .arg(opt)
         .arg(prog)
         .args(args)
         .stdin(Stdio::inherit())
