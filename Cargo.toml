@@ -8,7 +8,6 @@ keywords = ["shell", "binary", "script"]
 
 homepage = "https://github.com/chenyukang/rsh"
 license = "MIT"
-license-file = "https://github.com/chenyukang/rsh/blob/master/LICENSE"
 
 
 [dependencies]
