@@ -5,6 +5,7 @@ use std::process::Command;
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
+mod template;
 
 fn encode(input: String, key: String) -> Vec<u8> {
     return encode_vec(input.as_bytes().to_vec(), key);
@@ -16,31 +17,6 @@ fn encode_vec(input: Vec<u8>, key: String) -> Vec<u8> {
     rc4.process(&input, &mut output);
     return output.to_vec();
 }
-
-fn compile_it(file: &String) {
-    println!("compile it ...");
-    let output = Command::new("rustc")
-        .arg(file)
-        .output()
-        .expect("failed to compile");
-
-    let stdout = output.stdout;
-    let stderr = output.stderr;
-    if stdout.len() > 0 {
-        println!("{}", String::from_utf8_lossy(&stdout));
-    }
-    if stderr.len() > 0 {
-        println!("{}", String::from_utf8_lossy(&stderr));
-    }
-    if output.status.success() {
-        println!(
-            "compiled success, try it with: ./{}",
-            file.replace(".rs", "")
-        );
-    }
-}
-
-
 
 pub fn find_interp(content: &String) -> (String, String) {
     if content.starts_with("#!") {
@@ -64,13 +40,37 @@ pub fn find_interp(content: &String) -> (String, String) {
     }
 }
 
-pub fn gen_and_compile(file: &str, rs_file: &str, pass: &str, prog: &'static str) {
+fn compile_it(file: &String) {
+    println!("compile it ... {}", file);
+    let output = Command::new("rustc")
+        .arg(file)
+        .output()
+        .expect("failed to compile");
+
+    let stdout = output.stdout;
+    let stderr = output.stderr;
+    if stdout.len() > 0 {
+        println!("{}", String::from_utf8_lossy(&stdout));
+    }
+    if stderr.len() > 0 {
+        println!("{}", String::from_utf8_lossy(&stderr));
+    }
+    if output.status.success() {
+        println!(
+            "compiled success, try it with: ./{}",
+            file.replace(".rs", "")
+        );
+    }
+}
+
+pub fn gen_and_compile(file: &str, rs_file: &str, pass: &str) {
     let content = fs::read_to_string(file).expect("Failed to read source file");
-    let _encoded = encode(content.clone(), "hello".to_string()); // we need to encode it latter
+    // we need to encode it latter
+    let _encoded = encode(content.clone(), "hello".to_string());
     let (interp, content) = find_interp(&content);
     //println!("{}", content);
     let encoded_str = format!("vec!{:?}\n", content.as_bytes());
-    let prog = prog
+    let prog = template::prog()
         .replace("{ script_code }", &encoded_str)
         .replace("{ pass }", &pass)
         .replace("{ interp }", &interp);
@@ -85,9 +85,8 @@ pub fn gen_and_compile(file: &str, rs_file: &str, pass: &str, prog: &'static str
 
 #[cfg(test)]
 mod tests {
-    use super::encode;
-    use super::encode_vec;
-    use super::find_interp;
+    use super::*;
+    use std::env;
 
     #[test]
     fn test_find_interp() {
@@ -118,6 +117,31 @@ mod tests {
         let decoded = encode_vec(encoded, "hello".to_string());
         let result = String::from_utf8_lossy(&decoded);
         assert!(result == content);
+    }
+
+    #[test]
+    fn test_compile_run() {
+        let exe = env::current_exe().unwrap();
+        let mut elems: Vec<&str> = exe.to_str().unwrap().split("/").collect();
+        unsafe { elems.set_len(elems.len() - 4); }
+        let path = elems.join("/") + "/examples/";
+
+        let files = fs::read_dir(path.to_owned()).unwrap();
+        for file in files {
+            let p = file.unwrap().path();
+            let s = p.to_str().unwrap();
+            println!("Name: {}", s);
+            if !s.ends_with("_out") {
+                let out = format!("{}.new_out", s);
+                println!("new_out: {}", out);
+                gen_and_compile(s, &out.to_owned(), "");
+                let new_out = fs::read_to_string(out.clone()).unwrap();
+                let gen_out = fs::read_to_string(out.replace(".new_out", ".gen_out")).unwrap();
+                assert!(new_out == gen_out);
+            }
+
+        }
+        assert!("pwd" == "pwd");
     }
 
     #[test]

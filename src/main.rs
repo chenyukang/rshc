@@ -4,7 +4,6 @@ extern crate dialoguer;
 use dialoguer::{theme::ColorfulTheme, PasswordInput};
 
 mod util;
-mod template;
 use clap::{App, Arg};
 
 fn main() {
@@ -58,5 +57,5 @@ fn main() {
     } else {
         output.to_owned()
     };
-    util::gen_and_compile(&file, &rs_file, &pass, template::prog());
+    util::gen_and_compile(&file, &rs_file, &pass);
 }
