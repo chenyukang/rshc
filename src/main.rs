@@ -112,7 +112,7 @@ fn main() {
 
     //println!("running ...:\n {}", prog_str);
     let mut args = env::args().collect::<Vec<_>>();
-    args[0] = String::from("");
+    args.drain(0..1);
     run_process(&iterp.to_string(), &prog_str, &args);
 }
 "###;
