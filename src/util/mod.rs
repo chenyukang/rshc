@@ -1,10 +1,10 @@
 use crypto::rc4::Rc4;
 use crypto::symmetriccipher::SynchronousStreamCipher;
-use std::iter::repeat;
-use std::process::Command;
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
+use std::iter::repeat;
+use std::process::Command;
 mod template;
 
 fn encode(input: String, key: String) -> Vec<u8> {
@@ -61,7 +61,7 @@ fn compile_it(file: &String) {
             file.replace(".rs", "")
         );
     } else {
-        //std::process::exit(1);
+        std::process::exit(1);
     }
 }
 
@@ -84,11 +84,11 @@ pub fn gen_and_compile(file: &str, rs_file: &str, pass: &str) {
     compile_it(&rs_file.to_string());
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::env;
+    use std::path::Path;
 
     #[test]
     fn test_find_interp() {
@@ -125,26 +125,21 @@ mod tests {
     fn test_compile_run() {
         let exe = env::current_exe().unwrap();
         let mut elems: Vec<&str> = exe.to_str().unwrap().split("/").collect();
-        unsafe { elems.set_len(elems.len() - 4); }
+        unsafe {
+            elems.set_len(elems.len() - 4);
+        }
         let path = elems.join("/") + "/examples/";
-        let mut errors = vec![];
+        env::set_current_dir(Path::new(&path)).is_ok();
         let files = fs::read_dir(path.to_owned()).unwrap();
         for file in files {
             let p = file.unwrap().path();
             let s = p.to_str().unwrap();
-            if !s.ends_with("_out") {
-                let out = format!("{}.new_out", s);
+            if !s.ends_with(".out") && s.contains(".") {
+                let out = format!("{}.out", s.replace(".", "_"));
+                println!("out: {} {}", s, out);
                 gen_and_compile(s, &out.to_owned(), "");
-                let new_out = fs::read_to_string(out.clone()).unwrap_or("".to_string());
-                let gen_out = fs::read_to_string(out.replace(".new_out", ".gen_out")).unwrap_or("".to_string());
-                if new_out != gen_out {
-                    errors.push(s.to_owned());
-                }
-                // assert!(new_out == gen_out);
             }
         }
-        println!("diff: {:?}", errors);
-        assert!(errors.len() == 0);
     }
 
     #[test]

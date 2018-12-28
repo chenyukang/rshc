@@ -1,4 +1,3 @@
-
 pub fn prog() -> &'static str {
     let prog = r###"
 use std::io;
