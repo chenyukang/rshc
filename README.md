@@ -3,8 +3,10 @@
 rshc: Compile shell script(or expect script) to Rust code and binary.
 
 Rshc takes a script, which is specified on the command line and produces Rust source code. 
+
 The generated source code is then compiled and linked to produce a stripped binary executable, which use the Rust compiler.
-The execution will use process to exec the script, the but source code of script is encoded in binary with Rc4 algorithm.
+
+Actual execution will use process to exec the script, the but source code of script is encoded in binary with Rc4 algorithm.
 
 This is used as:
 
