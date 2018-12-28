@@ -2,19 +2,22 @@ use crypto::rc4::Rc4;
 use crypto::symmetriccipher::SynchronousStreamCipher;
 use std::iter::repeat;
 use std::process::Command;
+use std::fs;
+use std::fs::File;
+use std::io::prelude::*;
 
-pub fn encode(input: String, key: String) -> Vec<u8> {
+fn encode(input: String, key: String) -> Vec<u8> {
     return encode_vec(input.as_bytes().to_vec(), key);
 }
 
-pub fn encode_vec(input: Vec<u8>, key: String) -> Vec<u8> {
+fn encode_vec(input: Vec<u8>, key: String) -> Vec<u8> {
     let mut rc4 = Rc4::new(key.as_bytes());
     let mut output: Vec<u8> = repeat(0).take(input.len()).collect();
     rc4.process(&input, &mut output);
     return output.to_vec();
 }
 
-pub fn compile_it(file: &String) {
+fn compile_it(file: &String) {
     println!("compile it ...");
     let output = Command::new("rustc")
         .arg(file)
@@ -37,6 +40,8 @@ pub fn compile_it(file: &String) {
     }
 }
 
+
+
 pub fn find_interp(content: &String) -> (String, String) {
     if content.starts_with("#!") {
         let lines: Vec<&str> = content.split("\n").collect();
@@ -58,6 +63,25 @@ pub fn find_interp(content: &String) -> (String, String) {
         (String::from("bash"), content.to_owned())
     }
 }
+
+pub fn gen_and_compile(file: &str, rs_file: &str, pass: &str, prog: &'static str) {
+    let content = fs::read_to_string(file).expect("Failed to read source file");
+    let _encoded = encode(content.clone(), "hello".to_string()); // we need to encode it latter
+    let (interp, content) = find_interp(&content);
+    //println!("{}", content);
+    let encoded_str = format!("vec!{:?}\n", content.as_bytes());
+    let prog = prog
+        .replace("{ script_code }", &encoded_str)
+        .replace("{ pass }", &pass)
+        .replace("{ interp }", &interp);
+
+    File::create(rs_file)
+        .unwrap()
+        .write_all(prog.as_bytes())
+        .unwrap();
+    compile_it(&rs_file.to_string());
+}
+
 
 #[cfg(test)]
 mod tests {
