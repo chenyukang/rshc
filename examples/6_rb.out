@@ -23,8 +23,7 @@ fn run_process(iterp: &String, prog: &String, args: &Vec<String>) {
 }
 
 fn main() {
-    let prog = vec![10, 112, 117, 116, 115, 32, 34, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33, 34, 10]
-;
+    let prog = vec![10, 112, 117, 116, 115, 32, 34, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33, 34, 10];
     let pass = "";
     let iterp = "ruby";
     

@@ -23,8 +23,7 @@ fn run_process(iterp: &String, prog: &String, args: &Vec<String>) {
 }
 
 fn main() {
-    let prog = vec![108, 115, 32, 45, 108, 32, 10, 101, 99, 104, 111, 32, 34, 110, 111, 119, 34, 10, 10, 119, 99, 32, 10]
-;
+    let prog = vec![108, 115, 32, 45, 108, 32, 10, 101, 99, 104, 111, 32, 34, 110, 111, 119, 34, 10, 10, 119, 99, 32, 10];
     let pass = "";
     let iterp = "bash";
     

@@ -71,7 +71,7 @@ pub fn gen_and_compile(file: &str, rs_file: &str, pass: &str) {
     let _encoded = encode(content.clone(), "hello".to_string());
     let (interp, content) = find_interp(&content);
     //println!("{}", content);
-    let encoded_str = format!("vec!{:?}\n", content.as_bytes());
+    let encoded_str = format!("vec!{:?}", content.as_bytes());
     let prog = template::prog()
         .replace("{ script_code }", &encoded_str)
         .replace("{ pass }", &pass)
