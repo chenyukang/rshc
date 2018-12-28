@@ -60,6 +60,8 @@ fn compile_it(file: &String) {
             "compiled success, try it with: ./{}",
             file.replace(".rs", "")
         );
+    } else {
+        //std::process::exit(1);
     }
 }
 
