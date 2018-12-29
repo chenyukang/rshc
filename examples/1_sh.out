@@ -1,9 +1,70 @@
 
 use std::io;
+use std::iter::repeat;
 use std::io::Write;
 use std::process;
 use std::process::{Command, Stdio};
 use std::env;
+
+#[derive(Copy)]
+pub struct Arc4 {
+    i: u8,
+    j: u8,
+    state: [u8; 256],
+}
+
+impl Clone for Arc4 {
+    fn clone(&self) -> Arc4 {
+        *self
+    }
+}
+
+impl Arc4 {
+    pub fn new(key: &[u8]) -> Arc4 {
+        assert!(key.len() >= 1 && key.len() <= 256);
+        let mut rc4 = Arc4 {
+            i: 0,
+            j: 0,
+            state: [0; 256],
+        };
+        for (i, x) in rc4.state.iter_mut().enumerate() {
+            *x = i as u8;
+        }
+        let mut j: u8 = 0;
+        for i in 0..256 {
+            j = j
+                .wrapping_add(rc4.state[i])
+                .wrapping_add(key[i % key.len()]);
+            rc4.state.swap(i, j as usize);
+        }
+        rc4
+    }
+    fn next(&mut self) -> u8 {
+        self.i = self.i.wrapping_add(1);
+        self.j = self.j.wrapping_add(self.state[self.i as usize]);
+        self.state.swap(self.i as usize, self.j as usize);
+        let k = self.state
+            [(self.state[self.i as usize].wrapping_add(self.state[self.j as usize])) as usize];
+        k
+    }
+
+    fn encode_vec(&mut self, input: &[u8], output: &mut [u8]) {
+        assert!(input.len() == output.len());
+        for (x, y) in input.iter().zip(output.iter_mut()) {
+            *y = *x ^ self.next();
+        }
+    }
+
+    pub fn trans_vec(&mut self, input: &Vec<u8>) -> Vec<u8> {
+        let mut out: Vec<u8> = repeat(0).take(input.len()).collect();
+        self.encode_vec(input, &mut out);
+        return out.to_vec();
+    }
+
+    pub fn trans_str(&mut self, str: &String) -> Vec<u8> {
+        return self.trans_vec(&str.as_bytes().to_vec());
+    }
+}
 
 fn run_process(iterp: &String, prog: &String, args: &Vec<String>) {
     let prog = format!("{}", prog.to_owned());
@@ -23,10 +84,10 @@ fn run_process(iterp: &String, prog: &String, args: &Vec<String>) {
 }
 
 fn main() {
-    let prog = vec![115, 112, 97, 119, 110, 32, 115, 115, 104, 32, 107, 97, 110, 103, 64, 49, 57, 50, 46, 49, 54, 56, 46, 51, 46, 52, 10, 101, 120, 112, 101, 99, 116, 32, 34, 80, 97, 115, 115, 119, 111, 114, 100, 58, 34, 10, 115, 101, 110, 100, 32, 34, 120, 120, 92, 114, 34, 10, 101, 120, 112, 101, 99, 116, 32, 34, 37, 34, 10, 115, 101, 110, 100, 32, 34, 112, 115, 32, 45, 101, 102, 32, 124, 103, 114, 101, 112, 32, 110, 103, 105, 110, 120, 92, 114, 34, 10, 101, 120, 112, 101, 99, 116, 32, 34, 37, 34, 10, 115, 101, 110, 100, 32, 34, 101, 120, 105, 116, 92, 114, 34, 10, 10];
+    let prog = vec![124, 33, 222, 141, 197, 136, 170, 119, 53, 174, 141, 124, 161, 246, 144, 63, 32, 134, 28, 126, 177, 230, 95, 64, 58, 134, 239, 246, 189, 162, 251, 214, 119, 110, 146, 68, 177, 31, 21, 209, 36, 222, 176, 107, 239, 93, 145, 219, 187, 158, 18, 81, 140, 64, 186, 89, 91, 42, 202, 22, 156, 140, 76, 212, 13, 132, 88, 96, 209, 223, 69, 36, 222, 82, 138, 138, 97, 194, 100, 240, 235, 174, 94, 62, 224, 109, 87, 152, 225, 161, 218, 188, 254, 49, 71, 204, 220, 103, 33, 236, 2, 174, 211, 22, 64, 103, 102, 121, 225, 80, 238, 158, 229, 234, 101, 156, 200, 115, 122, 4, 232, 85, 29];
     let pass = "";
     let iterp = "expect";
-    
+
     if pass.len() != 0 {
         let mut input = String::new();
         print!("Password: ");
@@ -40,7 +101,8 @@ fn main() {
             process::exit(1);
         }
     }
-    let prog_str = String::from_utf8(prog).unwrap();
+    let prog_vec = Arc4::new(b"hello").trans_vec(&prog);
+    let prog_str = String::from_utf8(prog_vec).unwrap();
     //println!("running ...:\n {}", prog_str);
     let mut args = env::args().collect::<Vec<_>>();
     args.drain(0..1);

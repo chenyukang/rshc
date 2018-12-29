@@ -1,22 +1,9 @@
-use crypto::rc4::Rc4;
-use crypto::symmetriccipher::SynchronousStreamCipher;
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
 use std::iter::repeat;
 use std::process::Command;
 mod template;
-
-fn encode(input: String, key: String) -> Vec<u8> {
-    return encode_vec(input.as_bytes().to_vec(), key);
-}
-
-fn encode_vec(input: Vec<u8>, key: String) -> Vec<u8> {
-    let mut rc4 = Rc4::new(key.as_bytes());
-    let mut output: Vec<u8> = repeat(0).take(input.len()).collect();
-    rc4.process(&input, &mut output);
-    return output.to_vec();
-}
 
 pub fn find_interp(content: &String) -> (String, String) {
     if content.starts_with("#!") {
@@ -66,12 +53,10 @@ fn compile_it(file: &String) {
 }
 
 pub fn gen_and_compile(file: &str, rs_file: &str, pass: &str) {
-    let content = fs::read_to_string(file).expect("Failed to read source file");
-    // we need to encode it latter
-    let _encoded = encode(content.clone(), "hello".to_string());
-    let (interp, content) = find_interp(&content);
-    //println!("{}", content);
-    let encoded_str = format!("vec!{:?}", content.as_bytes());
+    let source = fs::read_to_string(file).expect("Failed to read source file");
+    let (interp, striped) = find_interp(&source);
+    let encoded_vec = Arc4::new(b"hello").trans_str(&striped);
+    let encoded_str = format!("vec!{:?}", encoded_vec);
     let prog = template::prog()
         .replace("{ script_code }", &encoded_str)
         .replace("{ pass }", &pass)
@@ -82,6 +67,66 @@ pub fn gen_and_compile(file: &str, rs_file: &str, pass: &str) {
         .write_all(prog.as_bytes())
         .unwrap();
     compile_it(&rs_file.to_string());
+}
+
+#[derive(Copy)]
+pub struct Arc4 {
+    i: u8,
+    j: u8,
+    state: [u8; 256],
+}
+
+impl Clone for Arc4 {
+    fn clone(&self) -> Arc4 {
+        *self
+    }
+}
+
+impl Arc4 {
+    pub fn new(key: &[u8]) -> Arc4 {
+        assert!(key.len() >= 1 && key.len() <= 256);
+        let mut rc4 = Arc4 {
+            i: 0,
+            j: 0,
+            state: [0; 256],
+        };
+        for (i, x) in rc4.state.iter_mut().enumerate() {
+            *x = i as u8;
+        }
+        let mut j: u8 = 0;
+        for i in 0..256 {
+            j = j
+                .wrapping_add(rc4.state[i])
+                .wrapping_add(key[i % key.len()]);
+            rc4.state.swap(i, j as usize);
+        }
+        rc4
+    }
+    fn next(&mut self) -> u8 {
+        self.i = self.i.wrapping_add(1);
+        self.j = self.j.wrapping_add(self.state[self.i as usize]);
+        self.state.swap(self.i as usize, self.j as usize);
+        let k = self.state
+            [(self.state[self.i as usize].wrapping_add(self.state[self.j as usize])) as usize];
+        k
+    }
+
+    fn encode_vec(&mut self, input: &[u8], output: &mut [u8]) {
+        assert!(input.len() == output.len());
+        for (x, y) in input.iter().zip(output.iter_mut()) {
+            *y = *x ^ self.next();
+        }
+    }
+
+    pub fn trans_vec(&mut self, input: &Vec<u8>) -> Vec<u8> {
+        let mut out: Vec<u8> = repeat(0).take(input.len()).collect();
+        self.encode_vec(input, &mut out);
+        return out.to_vec();
+    }
+
+    pub fn trans_str(&mut self, str: &String) -> Vec<u8> {
+        return self.trans_vec(&str.as_bytes().to_vec());
+    }
 }
 
 #[cfg(test)]
@@ -112,11 +157,12 @@ mod tests {
         println!("interp: {}", interp);
         assert!(interp == "bash");
     }
+
     #[test]
     fn test_encode_decode() {
         let content = String::from("ahah, this is hello world!");
-        let encoded = encode(content.clone(), "hello".to_string());
-        let decoded = encode_vec(encoded, "hello".to_string());
+        let encoded = Arc4::new(b"hello").trans_str(&content.clone());
+        let decoded = Arc4::new(b"hello").trans_vec(&encoded);
         let result = String::from_utf8_lossy(&decoded);
         assert!(result == content);
     }
@@ -175,7 +221,7 @@ mod tests {
 
         let tests = tests();
         for t in tests.iter() {
-            let result = encode(t.input.to_string(), t.key.to_string());
+            let result = Arc4::new(t.key.to_string().as_bytes()).trans_str(&t.input.to_string());
             assert!(result == t.output);
         }
     }
