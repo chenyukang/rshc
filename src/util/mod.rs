@@ -69,17 +69,10 @@ pub fn gen_and_compile(file: &str, rs_file: &str, pass: &str) {
     compile_it(&rs_file.to_string());
 }
 
-#[derive(Copy)]
 pub struct Arc4 {
     i: u8,
     j: u8,
     state: [u8; 256],
-}
-
-impl Clone for Arc4 {
-    fn clone(&self) -> Arc4 {
-        *self
-    }
 }
 
 impl Arc4 {
