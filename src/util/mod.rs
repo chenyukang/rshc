@@ -162,12 +162,8 @@ mod tests {
 
     #[test]
     fn test_compile_run() {
-        let exe = env::current_exe().unwrap();
-        let mut elems: Vec<&str> = exe.to_str().unwrap().split("/").collect();
-        unsafe {
-            elems.set_len(elems.len() - 4);
-        }
-        let path = elems.join("/") + "/examples/";
+        let dir = env::current_dir().unwrap();
+        let path = format!("{}/examples", dir.display());
         env::set_current_dir(Path::new(&path)).is_ok();
         let files = fs::read_dir(path.to_owned()).unwrap();
         for file in files {
