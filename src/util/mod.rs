@@ -6,6 +6,12 @@ use std::iter::repeat;
 use std::process::Command;
 mod template;
 
+#[cfg(debug_assertions)]
+fn rand_string(_len: u32) -> String {
+    String::from("test now")
+}
+
+#[cfg(not(debug_assertions))]
 fn rand_string(len: u32) -> String {
     const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ\
                               abcdefghijklmnopqrstuvwxyz\

