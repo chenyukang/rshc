@@ -77,8 +77,8 @@ fn run_process(iterp: &String, prog: &String, args: &Vec<String>) {
 }
 
 fn main() {
-    let prog = vec![34, 136, 210, 37, 109, 38, 222, 14, 172, 228, 149, 165, 167, 175, 151, 221, 125, 34, 139, 93];
-    let rand_key = "f2Ak4mbAn3QLZWM3xT4CtzAOXN3RQud5rlGmW0AOZ3UjrNs5dZpkW8sDreTzU3ZwyASep3lN7YVooKFwq65QdAFbngFtbnkCVG3uBKWqBeeLhIsPd3EsnP9JY7BThr7h";
+    let prog = vec![71, 158, 120, 194, 42, 189, 124, 195, 142, 28, 111, 132, 108, 108, 12, 141, 93, 12, 29, 153];
+    let rand_key = "T8uHMH1rrRyyNwvFHlG8KxCSKomIigsR3QS8yjn3MLUSmQt8FToNHYDvV9duTxsYSEQm9vJFj3l9aKEAFeBrhcjrmJsmcWjAhUeSLyVEujkRhKgzQSJphJRSN82cbNcL";
     let pass = "";
     let iterp = "ruby";
 

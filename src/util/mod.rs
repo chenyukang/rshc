@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
@@ -64,7 +65,7 @@ fn compile_it(file: &String) {
     }
 }
 
-pub fn gen_and_compile(file: &str, rs_file: &str, pass: &str) {
+pub fn gen_and_compile(file: &str, rs_file: &str, pass: &str) -> Result<(), Box<dyn Error>> {
     let source = fs::read_to_string(file).expect("Failed to read source file");
     let (interp, striped) = find_interp(&source);
     let rand_key = rand_string(128);
@@ -76,11 +77,9 @@ pub fn gen_and_compile(file: &str, rs_file: &str, pass: &str) {
         .replace("{ pass }", &pass)
         .replace("{ interp }", &interp);
 
-    File::create(rs_file)
-        .unwrap()
-        .write_all(prog.as_bytes())
-        .unwrap();
+    File::create(rs_file)?.write_all(prog.as_bytes())?;
     compile_it(&rs_file.to_string());
+    Ok(())
 }
 
 pub struct Arc4 {
@@ -175,11 +174,11 @@ mod tests {
     }
 
     #[test]
-    fn test_compile_run() {
-        let dir = env::current_dir().unwrap();
+    fn test_compile_run() -> Result<(), Box<dyn Error>> {
+        let dir = env::current_dir()?;
         let path = format!("{}/examples", dir.display());
         env::set_current_dir(Path::new(&path)).is_ok();
-        let files = fs::read_dir(path.to_owned()).unwrap();
+        let files = fs::read_dir(path.to_owned())?;
         for file in files {
             let p = file.unwrap().path();
             let s = p.to_str().unwrap();
@@ -198,6 +197,7 @@ mod tests {
         let out = String::from_utf8_lossy(&output.stdout);
         println!("now out: {}", out);
         assert!(out.trim() == "[\"1\", \"2\", \"3\"]");
+        Ok(())
     }
 
     #[test]

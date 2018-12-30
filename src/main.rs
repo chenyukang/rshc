@@ -57,5 +57,5 @@ fn main() {
     } else {
         output.to_owned()
     };
-    util::gen_and_compile(&file, &rs_file, &pass);
+    util::gen_and_compile(&file, &rs_file, &pass).unwrap();
 }
