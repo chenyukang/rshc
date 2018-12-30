@@ -77,7 +77,8 @@ fn run_process(iterp: &String, prog: &String, args: &Vec<String>) {
 }
 
 fn main() {
-    let prog = vec![5, 33, 202, 142, 216, 136, 152, 86, 26, 216, 200, 116, 161, 226, 160, 107, 122, 192, 56, 63, 242, 170, 2, 83, 85, 224, 162, 197, 235, 190, 251, 219, 100, 58, 216, 30];
+    let prog = vec![224, 129, 52, 86, 103, 107, 82, 97, 110, 173, 100, 105, 132, 19, 250, 35, 54, 143, 48, 67, 201, 137, 89, 239, 91, 158, 195, 216, 52, 124, 112, 235, 130, 221, 186, 88];
+    let rand_key = "2UsPscH2ShXWjlG7qGc4mv3gsN3TIraCCYGcwOzPQkc0WpkDATS3VXb0WLaUWS3H4w4O4BuIukJOnLbKWoy6yXnppatrGiJBGDRKJj5pYREIKcXjm8JCqVTRpmRg4npp";
     let pass = "";
     let iterp = "ruby";
 
@@ -94,7 +95,7 @@ fn main() {
             process::exit(1);
         }
     }
-    let prog_vec = Arc4::new(b"hello").trans_vec(&prog);
+    let prog_vec = Arc4::new(rand_key.to_string().as_bytes()).trans_vec(&prog);
     let prog_str = String::from_utf8(prog_vec).unwrap();
     //println!("running ...:\n {}", prog_str);
     let mut args = env::args().collect::<Vec<_>>();

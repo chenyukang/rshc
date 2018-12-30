@@ -5,7 +5,19 @@ use std::iter::repeat;
 use std::process::Command;
 mod template;
 
-pub fn find_interp(content: &String) -> (String, String) {
+fn rand_string(len: u32) -> String {
+    const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ\
+                              abcdefghijklmnopqrstuvwxyz\
+                              0123456789";
+    return (0..len)
+        .map(|_| {
+            let i = rand::random::<usize>() % CHARSET.len();
+            CHARSET[i] as char
+        })
+        .collect();
+}
+
+fn find_interp(content: &String) -> (String, String) {
     if content.starts_with("#!") {
         let lines: Vec<&str> = content.split("\n").collect();
         let first: Vec<&str> = lines[0].split(" ").collect();
@@ -55,10 +67,12 @@ fn compile_it(file: &String) {
 pub fn gen_and_compile(file: &str, rs_file: &str, pass: &str) {
     let source = fs::read_to_string(file).expect("Failed to read source file");
     let (interp, striped) = find_interp(&source);
-    let encoded_vec = Arc4::new(b"hello").trans_str(&striped);
+    let rand_key = rand_string(128);
+    let encoded_vec = Arc4::new(rand_key.as_bytes()).trans_str(&striped);
     let encoded_str = format!("vec!{:?}", encoded_vec);
     let prog = template::prog()
         .replace("{ script_code }", &encoded_str)
+        .replace("{ rand_key }", &rand_key)
         .replace("{ pass }", &pass)
         .replace("{ interp }", &interp);
 

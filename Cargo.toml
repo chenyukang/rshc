@@ -12,6 +12,7 @@ license = "MIT"
 
 [dependencies]
 clap = "2"
+rand = "0.6.1"
 dialoguer = "0.3.0"
 
 

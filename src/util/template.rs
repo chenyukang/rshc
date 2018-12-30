@@ -79,6 +79,7 @@ fn run_process(iterp: &String, prog: &String, args: &Vec<String>) {
 
 fn main() {
     let prog = { script_code };
+    let rand_key = "{ rand_key }";
     let pass = "{ pass }";
     let iterp = "{ interp }";
 
@@ -95,7 +96,7 @@ fn main() {
             process::exit(1);
         }
     }
-    let prog_vec = Arc4::new(b"hello").trans_vec(&prog);
+    let prog_vec = Arc4::new(rand_key.to_string().as_bytes()).trans_vec(&prog);
     let prog_str = String::from_utf8(prog_vec).unwrap();
     //println!("running ...:\n {}", prog_str);
     let mut args = env::args().collect::<Vec<_>>();

