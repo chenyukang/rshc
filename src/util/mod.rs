@@ -189,6 +189,15 @@ mod tests {
                 gen_and_compile(s, &out.to_owned(), "");
             }
         }
+
+        let output = Command::new("./7_rb")
+            .args(vec!["1", "2", "3"])
+            .output()
+            .expect("failed to execute");
+
+        let out = String::from_utf8_lossy(&output.stdout);
+        println!("now out: {}", out);
+        assert!(out.trim() == "[\"1\", \"2\", \"3\"]");
     }
 
     #[test]
