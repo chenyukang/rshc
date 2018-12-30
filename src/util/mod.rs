@@ -8,7 +8,7 @@ mod template;
 
 #[cfg(debug_assertions)]
 fn rand_string(_len: u32) -> String {
-    String::from("test now")
+    String::from("rand_string_in_test_cfg")
 }
 
 #[cfg(not(debug_assertions))]
