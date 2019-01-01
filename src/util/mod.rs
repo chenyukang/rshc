@@ -27,12 +27,12 @@ fn rand_string(len: u32) -> String {
 fn find_interp(content: &String) -> (String, String) {
     if content.starts_with("#!") {
         let lines: Vec<&str> = content.split("\n").collect();
-        let first: Vec<&str> = lines[0].split(" ").collect();
-        if first.len() < 2 {
+        let first: Vec<&str> = lines[0].trim().split(" ").collect();
+        if first.len() < 1 {
             (String::from("bash"), content.to_owned())
         } else {
             let interp = String::from(
-                first[first.len() - 2]
+                first[0]
                     .split("/")
                     .collect::<Vec<&str>>()
                     .last()
@@ -164,6 +164,11 @@ mod tests {
         println!("interp: {}", interp);
         assert!(interp == "bash");
 
+        let text = String::from("#!/bin/ruby ");
+        let (interp, _) = find_interp(&text);
+        println!("interp: {}", interp);
+        assert!(interp == "ruby");
+
         let text = String::from("send 1 2 3");
         let (interp, _) = find_interp(&text);
         println!("interp: {}", interp);
@@ -191,7 +196,7 @@ mod tests {
             if !s.ends_with(".out") && s.contains(".") {
                 let out = format!("{}.out", s.replace(".", "_"));
                 println!("out: {} {}", s, out);
-                gen_and_compile(s, &out.to_owned(), "");
+                gen_and_compile(s, &out.to_owned(), "")?;
             }
         }
 
