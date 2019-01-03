@@ -24,16 +24,16 @@ fn rand_string(len: u32) -> String {
         .collect();
 }
 
-fn find_interp(content: &String) -> (String, String) {
+fn find_interp(content: &str) -> (String, String) {
     if content.starts_with("#!") {
-        let lines: Vec<&str> = content.split("\n").collect();
-        let first: Vec<&str> = lines[0].trim().split(" ").collect();
-        if first.len() < 1 {
+        let lines: Vec<&str> = content.split('\n').collect();
+        let first: Vec<&str> = lines[0].trim().split(' ').collect();
+        if first.is_empty() {
             (String::from("bash"), content.to_owned())
         } else {
             let interp = String::from(
                 first[0]
-                    .split("/")
+                    .split('/')
                     .collect::<Vec<&str>>()
                     .last()
                     .unwrap()
@@ -46,7 +46,7 @@ fn find_interp(content: &String) -> (String, String) {
     }
 }
 
-fn compile_it(file: &String) {
+fn compile_it(file: &str) {
     println!("compile it ... {}", file);
     let output = Command::new("rustc")
         .arg(file)
@@ -55,10 +55,10 @@ fn compile_it(file: &String) {
 
     let stdout = output.stdout;
     let stderr = output.stderr;
-    if stdout.len() > 0 {
+    if !stdout.is_empty() {
         println!("{}", String::from_utf8_lossy(&stdout));
     }
-    if stderr.len() > 0 {
+    if !stderr.is_empty() {
         println!("{}", String::from_utf8_lossy(&stderr));
     }
     if output.status.success() {
@@ -96,7 +96,7 @@ pub struct Arc4 {
 
 impl Arc4 {
     pub fn new(key: &[u8]) -> Arc4 {
-        assert!(key.len() >= 1 && key.len() <= 256);
+        assert!(!key.is_empty() && key.len() <= 256);
         let mut rc4 = Arc4 {
             i: 0,
             j: 0,
@@ -118,9 +118,8 @@ impl Arc4 {
         self.i = self.i.wrapping_add(1);
         self.j = self.j.wrapping_add(self.state[self.i as usize]);
         self.state.swap(self.i as usize, self.j as usize);
-        let k = self.state
-            [(self.state[self.i as usize].wrapping_add(self.state[self.j as usize])) as usize];
-        k
+        self.state
+            [(self.state[self.i as usize].wrapping_add(self.state[self.j as usize])) as usize]
     }
 
     fn encode_vec(&mut self, input: &[u8], output: &mut [u8]) {
@@ -130,14 +129,14 @@ impl Arc4 {
         }
     }
 
-    pub fn trans_vec(&mut self, input: &Vec<u8>) -> Vec<u8> {
+    pub fn trans_vec(&mut self, input: &[u8]) -> Vec<u8> {
         let mut out: Vec<u8> = repeat(0).take(input.len()).collect();
         self.encode_vec(input, &mut out);
-        return out.to_vec();
+        out.to_vec()
     }
 
-    pub fn trans_str(&mut self, str: &String) -> Vec<u8> {
-        return self.trans_vec(&str.as_bytes().to_vec());
+    pub fn trans_str(&mut self, str: &str) -> Vec<u8> {
+        self.trans_vec(&str.as_bytes().to_vec())
     }
 }
 
