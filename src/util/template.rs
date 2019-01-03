@@ -1,5 +1,5 @@
 pub fn prog() -> &'static str {
-    let prog = r###"
+    r###"
 use std::io;
 use std::iter::repeat;
 use std::io::Write;
@@ -103,6 +103,5 @@ fn main() {
     args.drain(0..1);
     run_process(&iterp.to_string(), &prog_str, &args);
 }
-"###;
-    return prog;
+"###
 }
