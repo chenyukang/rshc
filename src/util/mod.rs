@@ -118,8 +118,7 @@ impl Arc4 {
         self.i = self.i.wrapping_add(1);
         self.j = self.j.wrapping_add(self.state[self.i as usize]);
         self.state.swap(self.i as usize, self.j as usize);
-        self.state
-            [(self.state[self.i as usize].wrapping_add(self.state[self.j as usize])) as usize]
+        self.state[(self.state[self.i as usize].wrapping_add(self.state[self.j as usize])) as usize]
     }
 
     fn encode_vec(&mut self, input: &[u8], output: &mut [u8]) {
@@ -187,7 +186,7 @@ mod tests {
     fn test_compile_run() -> Result<(), Box<dyn Error>> {
         let dir = env::current_dir()?;
         let path = format!("{}/examples", dir.display());
-        env::set_current_dir(Path::new(&path)).is_ok();
+        env::set_current_dir(Path::new(&path)).unwrap();
         let files = fs::read_dir(path.to_owned())?;
         for file in files {
             let p = file.unwrap().path();
