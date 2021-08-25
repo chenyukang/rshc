@@ -1,6 +1,8 @@
 # rshc
 
 [![ci](https://github.com/chenyukang/rshc/workflows/ci/badge.svg)](https://github.com/chenyukang/rshc/actions)
+[![codecov](https://codecov.io/gh/chenyukang/rshc/branch/main/graph/badge.svg)](https://codecov.io/gh/chenyukang/rshc)
+
 
 rshc: Compile shell script(or expect script) to Rust code and binary.
 
