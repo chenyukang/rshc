@@ -1,6 +1,6 @@
 # rshc
 
-[![ci](https://github.com/chenyukang/rshc/workflows/ci/badge.svg)](https://github.com/chenyukang/rshc/actions)
+[![ci](https://github.com/chenyukang/rshc/workflows/ci/badge.svg?branch=master)](https://github.com/chenyukang/rshc/actions)
 [![codecov](https://codecov.io/gh/chenyukang/rshc/branch/main/graph/badge.svg)](https://codecov.io/gh/chenyukang/rshc)
 
 
