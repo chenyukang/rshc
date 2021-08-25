@@ -1,6 +1,6 @@
 # rshc
 
-[![Build Status](https://travis-ci.com/chenyukang/rshc.svg?branch=master)](https://travis-ci.com/chenyukang/rshc)
+[![ci](https://github.com/chenyukang/rshc/workflows/ci/badge.svg)](https://github.com/chenyukang/rshc/actions)
 
 rshc: Compile shell script(or expect script) to Rust code and binary.
 
