@@ -238,7 +238,8 @@ mod tests {
         for file in files {
             let p = file.unwrap().path();
             let s = p.to_str().unwrap();
-            if !s.ends_with(".out") && s.contains(".") {
+            // Only compile known script types (.sh, .rb), skip .out, .rs, and other files
+            if s.ends_with(".sh") || s.ends_with(".rb") {
                 let out = format!("{}.out", s.replace(".", "_"));
                 println!("out: {} {}", s, out);
                 gen_and_compile(s, &out.to_owned(), "")?;
@@ -430,5 +431,266 @@ mod tests {
         let bin_path = out_rs.replace(".rs", "");
         let _ = fs::remove_file(&out_rs);
         let _ = fs::remove_file(&bin_path);
+    }
+
+    // ===== find_interp additional tests =====
+
+    #[test]
+    fn test_find_interp_env_shebang() {
+        // #!/usr/bin/env python3 — find_interp extracts "env" (last path component)
+        // This documents current behavior: env-style shebangs return "env"
+        let text = "#!/usr/bin/env python3\nprint('hello')";
+        let (interp, body) = find_interp(text);
+        assert_eq!(interp, "env");
+        assert_eq!(body, "print('hello')");
+    }
+
+    #[test]
+    fn test_find_interp_strips_shebang_line() {
+        // The returned content should NOT include the shebang line itself
+        let text = "#!/bin/bash\necho line1\necho line2";
+        let (interp, body) = find_interp(text);
+        assert_eq!(interp, "bash");
+        assert_eq!(body, "echo line1\necho line2");
+        assert!(!body.contains("#!"), "Shebang line should be stripped from body");
+    }
+
+    #[test]
+    fn test_find_interp_no_shebang_preserves_content() {
+        // Without shebang, content should be returned unchanged
+        let text = "echo hello\necho world";
+        let (interp, body) = find_interp(text);
+        assert_eq!(interp, "bash");
+        assert_eq!(body, text);
+    }
+
+    #[test]
+    fn test_find_interp_usr_bin_env_bash() {
+        // #!/usr/bin/env bash — current behavior extracts "env"
+        let text = "#!/usr/bin/env bash\nset -e\necho ok";
+        let (interp, body) = find_interp(text);
+        assert_eq!(interp, "env");
+        assert_eq!(body, "set -e\necho ok");
+    }
+
+    // ===== Arc4 additional tests =====
+
+    #[test]
+    fn test_arc4_empty_input() {
+        let result = Arc4::new(b"key").trans_str(&String::new());
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_arc4_single_byte() {
+        let encrypted = Arc4::new(b"key").trans_str(&String::from("A"));
+        assert_eq!(encrypted.len(), 1);
+        // Decrypt and verify roundtrip
+        let decrypted = Arc4::new(b"key").trans_vec(&encrypted);
+        assert_eq!(decrypted, b"A");
+    }
+
+    #[test]
+    fn test_arc4_large_data_roundtrip() {
+        // Test with a large payload (4KB)
+        let content: String = (0..4096).map(|i| (b'A' + (i % 26) as u8) as char).collect();
+        let key = b"a_longer_key_for_testing";
+        let encrypted = Arc4::new(key).trans_str(&content);
+        assert_eq!(encrypted.len(), 4096);
+        let decrypted = Arc4::new(key).trans_vec(&encrypted);
+        assert_eq!(String::from_utf8(decrypted).unwrap(), content);
+    }
+
+    #[test]
+    fn test_arc4_different_keys_produce_different_output() {
+        let plaintext = "same input data";
+        let enc1 = Arc4::new(b"key_alpha").trans_str(&plaintext.to_string());
+        let enc2 = Arc4::new(b"key_beta").trans_str(&plaintext.to_string());
+        assert_ne!(enc1, enc2, "Different keys should produce different ciphertext");
+    }
+
+    #[test]
+    fn test_arc4_same_key_same_output() {
+        let plaintext = "deterministic output";
+        let enc1 = Arc4::new(b"fixed_key").trans_str(&plaintext.to_string());
+        let enc2 = Arc4::new(b"fixed_key").trans_str(&plaintext.to_string());
+        assert_eq!(enc1, enc2, "Same key should produce identical ciphertext");
+    }
+
+    // ===== SHA-256 additional tests =====
+
+    #[test]
+    fn test_sha256_longer_input() {
+        // SHA-256("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq")
+        // = 248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1
+        let hash = sha256(b"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq");
+        assert_eq!(
+            hash,
+            [
+                0x24, 0x8d, 0x6a, 0x61, 0xd2, 0x06, 0x38, 0xb8, 0xe5, 0xc0, 0x26, 0x93, 0x0c,
+                0x3e, 0x60, 0x39, 0xa3, 0x3c, 0xe4, 0x59, 0x64, 0xff, 0x21, 0x67, 0xf6, 0xec,
+                0xed, 0xd4, 0x19, 0xdb, 0x06, 0xc1,
+            ]
+        );
+    }
+
+    #[test]
+    fn test_sha256_with_salt_different_salts() {
+        // Same password with different salts should produce different hashes
+        let pass = b"password123";
+        let salt1 = vec![1u8; 16];
+        let salt2 = vec![2u8; 16];
+
+        let mut data1 = pass.to_vec();
+        data1.extend_from_slice(&salt1);
+        let hash1 = sha256(&data1);
+
+        let mut data2 = pass.to_vec();
+        data2.extend_from_slice(&salt2);
+        let hash2 = sha256(&data2);
+
+        assert_ne!(hash1, hash2, "Different salts should produce different hashes");
+    }
+
+    // ===== gen_and_compile tests =====
+
+    #[test]
+    fn test_generated_binary_runs_correctly() {
+        // Compile a simple echo script and verify it produces correct output
+        let manifest_dir = env!("CARGO_MANIFEST_DIR");
+        let script = format!("{}/examples/3.sh", manifest_dir);
+        let out_rs = format!("{}/examples/test_gen_run.rs", manifest_dir);
+
+        gen_and_compile(&script, &out_rs, "").unwrap();
+
+        // rustc outputs binary to CWD, named after the source file stem
+        let bin_name = "test_gen_run";
+        let output = Command::new(format!("./{}", bin_name))
+            .args(&["hello", "world"])
+            .output()
+            .expect("failed to execute generated binary");
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(stdout.contains("First arg: hello"), "Got: {}", stdout);
+        assert!(stdout.contains("Second arg: world"), "Got: {}", stdout);
+
+        // Clean up
+        let _ = fs::remove_file(&out_rs);
+        let _ = fs::remove_file(bin_name);
+    }
+
+    #[test]
+    fn test_generated_binary_is_stripped() {
+        // Verify the compiled binary has symbols stripped (smaller size, fewer symbols)
+        let manifest_dir = env!("CARGO_MANIFEST_DIR");
+        let script = format!("{}/examples/2.sh", manifest_dir);
+        let out_rs = format!("{}/examples/test_strip_check.rs", manifest_dir);
+
+        gen_and_compile(&script, &out_rs, "").unwrap();
+
+        // rustc outputs binary to CWD
+        let bin_path = "test_strip_check".to_string();
+
+        // Check that nm finds very few (or no) symbols
+        let nm_output = Command::new("nm")
+            .arg(&bin_path)
+            .output();
+
+        match nm_output {
+            Ok(output) => {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                // On stripped binaries, nm typically reports "no symbols" or very few
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                let symbol_count = stdout.lines().count();
+                assert!(
+                    symbol_count < 200 || stderr.contains("no symbols"),
+                    "Binary should have few symbols after stripping, got {} symbols",
+                    symbol_count
+                );
+            }
+            Err(_) => {
+                // nm not available, skip this check
+            }
+        }
+
+        // Clean up
+        let _ = fs::remove_file(&out_rs);
+        let _ = fs::remove_file(&bin_path);
+    }
+
+    #[test]
+    fn test_no_password_generates_empty_hash() {
+        // When no password is given, pass_salt and pass_hash should be empty vecs
+        let manifest_dir = env!("CARGO_MANIFEST_DIR");
+        let script = format!("{}/examples/2.sh", manifest_dir);
+        let out_rs = format!("{}/examples/test_no_pass.rs", manifest_dir);
+
+        gen_and_compile(&script, &out_rs, "").unwrap();
+
+        let generated = fs::read_to_string(&out_rs).unwrap();
+
+        // Empty password should produce empty vec![] for both salt and hash
+        assert!(
+            generated.contains("let pass_salt: Vec<u8> = vec![];"),
+            "Empty password should produce empty pass_salt"
+        );
+        assert!(
+            generated.contains("let pass_hash: Vec<u8> = vec![];"),
+            "Empty password should produce empty pass_hash"
+        );
+
+        // Clean up
+        let _ = fs::remove_file(&out_rs);
+        let _ = fs::remove_file("test_no_pass");
+    }
+
+    #[test]
+    fn test_template_contains_all_placeholders() {
+        let tmpl = template::prog();
+        assert!(tmpl.contains("{ script_code }"), "Missing script_code placeholder");
+        assert!(tmpl.contains("{ key_mask }"), "Missing key_mask placeholder");
+        assert!(tmpl.contains("{ key_masked }"), "Missing key_masked placeholder");
+        assert!(tmpl.contains("{ pass_salt }"), "Missing pass_salt placeholder");
+        assert!(tmpl.contains("{ pass_hash }"), "Missing pass_hash placeholder");
+        assert!(tmpl.contains("{ interp }"), "Missing interp placeholder");
+    }
+
+    #[test]
+    fn test_template_has_stdin_pipe() {
+        // Verify template uses Stdio::piped() instead of passing script as argument
+        let tmpl = template::prog();
+        assert!(
+            tmpl.contains("Stdio::piped()"),
+            "Template should use stdin pipe for security"
+        );
+        assert!(
+            tmpl.contains("write_all"),
+            "Template should write script to stdin"
+        );
+    }
+
+    #[test]
+    fn test_generated_file_no_script_plaintext() {
+        // Verify the original script content is NOT readable in the generated .rs file
+        let manifest_dir = env!("CARGO_MANIFEST_DIR");
+        let script = format!("{}/examples/3.sh", manifest_dir);
+        let out_rs = format!("{}/examples/test_no_plain.rs", manifest_dir);
+
+        gen_and_compile(&script, &out_rs, "").unwrap();
+
+        let generated = fs::read_to_string(&out_rs).unwrap();
+        // The original script content should be encrypted, not plaintext
+        assert!(
+            !generated.contains("First arg:"),
+            "Generated file should not contain plaintext script content"
+        );
+        assert!(
+            !generated.contains("Second arg:"),
+            "Generated file should not contain plaintext script content"
+        );
+
+        // Clean up
+        let _ = fs::remove_file(&out_rs);
+        let _ = fs::remove_file("test_no_plain");
     }
 }
