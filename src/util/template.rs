@@ -29,6 +29,81 @@ fn secure_zero_string(s: &mut String) {
     s.clear();
 }
 
+/// Anti-debug: detect debuggers and library injection, exit silently if found
+fn detect_debugger() {
+    // 1. Check for injected libraries (common hooking technique)
+    for var in &["DYLD_INSERT_LIBRARIES", "LD_PRELOAD"] {
+        if std::env::var(var).is_ok() {
+            std::process::exit(1);
+        }
+    }
+
+    // 2. macOS: PT_DENY_ATTACH prevents debugger from attaching
+    #[cfg(target_os = "macos")]
+    {
+        extern "C" {
+            fn ptrace(request: i32, pid: i32, addr: *mut u8, data: i32) -> i32;
+        }
+        const PT_DENY_ATTACH: i32 = 31;
+        unsafe { ptrace(PT_DENY_ATTACH, 0, std::ptr::null_mut(), 0); }
+    }
+
+    // 3. macOS: sysctl check for P_TRACED flag
+    #[cfg(target_os = "macos")]
+    {
+        extern "C" {
+            fn sysctl(name: *const i32, namelen: u32, oldp: *mut u8, oldlenp: *mut usize, newp: *const u8, newlen: usize) -> i32;
+            fn getpid() -> i32;
+        }
+        // CTL_KERN=1, KERN_PROC=14, KERN_PROC_PID=1
+        let mib: [i32; 4] = [1, 14, 1, unsafe { getpid() }];
+        let mut info = [0u8; 752]; // kinfo_proc buffer (oversized for safety)
+        let mut size: usize = info.len();
+        let ret = unsafe {
+            sysctl(mib.as_ptr(), 4, info.as_mut_ptr(), &mut size, std::ptr::null(), 0)
+        };
+        if ret == 0 {
+            // kp_proc.p_flag at offset 32 (i32)
+            let p_flag = i32::from_ne_bytes([info[32], info[33], info[34], info[35]]);
+            const P_TRACED: i32 = 0x00000800;
+            if p_flag & P_TRACED != 0 {
+                std::process::exit(1);
+            }
+        }
+    }
+
+    // 4. Linux: PTRACE_TRACEME detection
+    #[cfg(target_os = "linux")]
+    {
+        extern "C" {
+            fn ptrace(request: u32, pid: u32, addr: *mut u8, data: *mut u8) -> i64;
+        }
+        const PTRACE_TRACEME: u32 = 0;
+        let ret = unsafe { ptrace(PTRACE_TRACEME, 0, std::ptr::null_mut(), std::ptr::null_mut()) };
+        if ret == -1 {
+            std::process::exit(1);
+        }
+        // Detach self so child processes still work
+        const PTRACE_DETACH: u32 = 17;
+        unsafe { ptrace(PTRACE_DETACH, 0, std::ptr::null_mut(), std::ptr::null_mut()); }
+    }
+
+    // 5. Linux: check /proc/self/status for TracerPid
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(status) = std::fs::read_to_string("/proc/self/status") {
+            for line in status.lines() {
+                if line.starts_with("TracerPid:") {
+                    let pid_str = line.trim_start_matches("TracerPid:").trim();
+                    if pid_str != "0" {
+                        std::process::exit(1);
+                    }
+                }
+            }
+        }
+    }
+}
+
 #[cfg(unix)]
 fn read_password_masked() -> String {
     use std::os::unix::io::AsRawFd;
@@ -243,6 +318,8 @@ fn run_process(iterp: &String, prog: &String, args: &Vec<String>) {
 }
 
 fn main() {
+    detect_debugger();
+
     let prog = { script_code };
     let mut key_mask: Vec<u8> = { key_mask };
     let mut key_masked: Vec<u8> = { key_masked };

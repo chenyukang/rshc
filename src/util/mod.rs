@@ -724,4 +724,37 @@ mod tests {
         let _ = fs::remove_file(&out_rs);
         let _ = fs::remove_file("test_no_plain");
     }
+
+    #[test]
+    fn test_template_has_anti_debug() {
+        let tmpl = template::prog();
+        assert!(
+            tmpl.contains("detect_debugger()"),
+            "Template should call detect_debugger in main"
+        );
+        assert!(
+            tmpl.contains("PT_DENY_ATTACH"),
+            "Template should use PT_DENY_ATTACH on macOS"
+        );
+        assert!(
+            tmpl.contains("PTRACE_TRACEME"),
+            "Template should use PTRACE_TRACEME on Linux"
+        );
+        assert!(
+            tmpl.contains("P_TRACED"),
+            "Template should check P_TRACED sysctl flag"
+        );
+        assert!(
+            tmpl.contains("TracerPid"),
+            "Template should check /proc/self/status TracerPid"
+        );
+        assert!(
+            tmpl.contains("DYLD_INSERT_LIBRARIES"),
+            "Template should detect DYLD_INSERT_LIBRARIES"
+        );
+        assert!(
+            tmpl.contains("LD_PRELOAD"),
+            "Template should detect LD_PRELOAD"
+        );
+    }
 }
