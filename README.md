@@ -8,7 +8,7 @@ rshc: Compile shell script(or expect script) to Rust code and binary.
 
 **This is an script obfuscator rather than a real compiler!**
 
-Rshc takes a script, which is specified on the command line and produces Rust source code. 
+Rshc takes a script, which is specified on the command line and produces Rust source code.
 
 The generated source code is then compiled and linked to produce a stripped binary executable, which use the Rust compiler.
 
@@ -24,7 +24,7 @@ This is used as:
 
 You need also install rustc, because rshc will use rustc to compile to binary.
 
-1. Install rustc if you didn't installed: 
+1. Install rustc if you didn't installed:
 
 ```bash
 curl https://sh.rustup.rs -sSf | sh
@@ -45,7 +45,7 @@ rshc -f demo.sh -o demo.rs
 rshc -f demo.sh -o demo.rs -p
 ```
 
-try it with 
+try it with
 
 ```shell
 ./demo

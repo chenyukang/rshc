@@ -1,10 +1,10 @@
+use sha2::{Digest, Sha256};
 use std::error::Error;
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
 use std::iter::repeat;
 use std::process::Command;
-use sha2::{Sha256, Digest};
 mod template;
 
 #[cfg(debug_assertions)]
@@ -52,9 +52,12 @@ fn compile_it(file: &str) {
     let bin_path = file.replace(".rs", "");
     let output = Command::new("rustc")
         .arg(file)
-        .arg("-o").arg(&bin_path)
-        .arg("-C").arg("strip=symbols")
-        .arg("-C").arg("opt-level=z")
+        .arg("-o")
+        .arg(&bin_path)
+        .arg("-C")
+        .arg("strip=symbols")
+        .arg("-C")
+        .arg("opt-level=z")
         .output()
         .expect("failed to compile");
 
@@ -76,10 +79,7 @@ fn compile_it(file: &str) {
             .expect("failed to open binary for checksum append");
         f.write_all(&hash).expect("failed to append checksum");
 
-        println!(
-            "compiled success, try it with: ./{}",
-            bin_path
-        );
+        println!("compiled success, try it with: ./{}", bin_path);
     } else {
         std::process::exit(1);
     }
@@ -135,7 +135,11 @@ pub fn gen_and_compile(file: &str, rs_file: &str, pass: &str) -> Result<(), Box<
 
     // Interpreter string obfuscation: XOR with random mask byte
     let interp_mask_byte = rand_bytes(1)[0] | 1; // ensure non-zero
-    let interp_enc: Vec<u8> = interp.as_bytes().iter().map(|b| b ^ interp_mask_byte).collect();
+    let interp_enc: Vec<u8> = interp
+        .as_bytes()
+        .iter()
+        .map(|b| b ^ interp_mask_byte)
+        .collect();
     let interp_enc_str = format!("vec!{:?}", interp_enc);
 
     let prog = template::prog()
@@ -257,9 +261,19 @@ mod tests {
             let s = p.to_str().unwrap();
             // Only compile known script types (.sh, .rb), skip .out, .rs, and other files
             if s.ends_with(".sh") || s.ends_with(".rb") {
-                let out = format!("{}.out", s.replace(".", "_"));
+                let out = format!("{}.rs", s.replace(".", "_"));
                 println!("out: {} {}", s, out);
                 gen_and_compile(s, &out.to_owned(), "")?;
+            }
+        }
+
+        // Clean up generated .rs files
+        let files = fs::read_dir(path.to_owned())?;
+        for file in files {
+            let p = file.unwrap().path();
+            let s = p.to_str().unwrap();
+            if s.ends_with(".rs") {
+                let _ = fs::remove_file(s);
             }
         }
 
@@ -405,9 +419,9 @@ mod tests {
         assert_eq!(
             empty_hash,
             [
-                0xe3, 0xb0, 0xc4, 0x42, 0x98, 0xfc, 0x1c, 0x14, 0x9a, 0xfb, 0xf4, 0xc8, 0x99,
-                0x6f, 0xb9, 0x24, 0x27, 0xae, 0x41, 0xe4, 0x64, 0x9b, 0x93, 0x4c, 0xa4, 0x95,
-                0x99, 0x1b, 0x78, 0x52, 0xb8, 0x55,
+                0xe3, 0xb0, 0xc4, 0x42, 0x98, 0xfc, 0x1c, 0x14, 0x9a, 0xfb, 0xf4, 0xc8, 0x99, 0x6f,
+                0xb9, 0x24, 0x27, 0xae, 0x41, 0xe4, 0x64, 0x9b, 0x93, 0x4c, 0xa4, 0x95, 0x99, 0x1b,
+                0x78, 0x52, 0xb8, 0x55,
             ]
         );
 
@@ -416,9 +430,9 @@ mod tests {
         assert_eq!(
             abc_hash,
             [
-                0xba, 0x78, 0x16, 0xbf, 0x8f, 0x01, 0xcf, 0xea, 0x41, 0x41, 0x40, 0xde, 0x5d,
-                0xae, 0x22, 0x23, 0xb0, 0x03, 0x61, 0xa3, 0x96, 0x17, 0x7a, 0x9c, 0xb4, 0x10,
-                0xff, 0x61, 0xf2, 0x00, 0x15, 0xad,
+                0xba, 0x78, 0x16, 0xbf, 0x8f, 0x01, 0xcf, 0xea, 0x41, 0x41, 0x40, 0xde, 0x5d, 0xae,
+                0x22, 0x23, 0xb0, 0x03, 0x61, 0xa3, 0x96, 0x17, 0x7a, 0x9c, 0xb4, 0x10, 0xff, 0x61,
+                0xf2, 0x00, 0x15, 0xad,
             ]
         );
     }
@@ -469,7 +483,10 @@ mod tests {
         let (interp, body) = find_interp(text);
         assert_eq!(interp, "bash");
         assert_eq!(body, "echo line1\necho line2");
-        assert!(!body.contains("#!"), "Shebang line should be stripped from body");
+        assert!(
+            !body.contains("#!"),
+            "Shebang line should be stripped from body"
+        );
     }
 
     #[test]
@@ -523,7 +540,10 @@ mod tests {
         let plaintext = "same input data";
         let enc1 = Arc4::new(b"key_alpha").trans_str(&plaintext.to_string());
         let enc2 = Arc4::new(b"key_beta").trans_str(&plaintext.to_string());
-        assert_ne!(enc1, enc2, "Different keys should produce different ciphertext");
+        assert_ne!(
+            enc1, enc2,
+            "Different keys should produce different ciphertext"
+        );
     }
 
     #[test]
@@ -544,9 +564,9 @@ mod tests {
         assert_eq!(
             hash,
             [
-                0x24, 0x8d, 0x6a, 0x61, 0xd2, 0x06, 0x38, 0xb8, 0xe5, 0xc0, 0x26, 0x93, 0x0c,
-                0x3e, 0x60, 0x39, 0xa3, 0x3c, 0xe4, 0x59, 0x64, 0xff, 0x21, 0x67, 0xf6, 0xec,
-                0xed, 0xd4, 0x19, 0xdb, 0x06, 0xc1,
+                0x24, 0x8d, 0x6a, 0x61, 0xd2, 0x06, 0x38, 0xb8, 0xe5, 0xc0, 0x26, 0x93, 0x0c, 0x3e,
+                0x60, 0x39, 0xa3, 0x3c, 0xe4, 0x59, 0x64, 0xff, 0x21, 0x67, 0xf6, 0xec, 0xed, 0xd4,
+                0x19, 0xdb, 0x06, 0xc1,
             ]
         );
     }
@@ -566,7 +586,10 @@ mod tests {
         data2.extend_from_slice(&salt2);
         let hash2 = sha256(&data2);
 
-        assert_ne!(hash1, hash2, "Different salts should produce different hashes");
+        assert_ne!(
+            hash1, hash2,
+            "Different salts should produce different hashes"
+        );
     }
 
     // ===== gen_and_compile tests =====
@@ -607,9 +630,7 @@ mod tests {
         let bin_path = out_rs.replace(".rs", "");
 
         // Check that nm finds very few (or no) symbols
-        let nm_output = Command::new("nm")
-            .arg(&bin_path)
-            .output();
+        let nm_output = Command::new("nm").arg(&bin_path).output();
 
         match nm_output {
             Ok(output) => {
@@ -662,13 +683,34 @@ mod tests {
     #[test]
     fn test_template_contains_all_placeholders() {
         let tmpl = template::prog();
-        assert!(tmpl.contains("{ script_code }"), "Missing script_code placeholder");
-        assert!(tmpl.contains("{ key_mask }"), "Missing key_mask placeholder");
-        assert!(tmpl.contains("{ key_masked }"), "Missing key_masked placeholder");
-        assert!(tmpl.contains("{ pass_salt }"), "Missing pass_salt placeholder");
-        assert!(tmpl.contains("{ pass_hash }"), "Missing pass_hash placeholder");
-        assert!(tmpl.contains("{ interp_enc }"), "Missing interp_enc placeholder");
-        assert!(tmpl.contains("{ interp_mask }"), "Missing interp_mask placeholder");
+        assert!(
+            tmpl.contains("{ script_code }"),
+            "Missing script_code placeholder"
+        );
+        assert!(
+            tmpl.contains("{ key_mask }"),
+            "Missing key_mask placeholder"
+        );
+        assert!(
+            tmpl.contains("{ key_masked }"),
+            "Missing key_masked placeholder"
+        );
+        assert!(
+            tmpl.contains("{ pass_salt }"),
+            "Missing pass_salt placeholder"
+        );
+        assert!(
+            tmpl.contains("{ pass_hash }"),
+            "Missing pass_hash placeholder"
+        );
+        assert!(
+            tmpl.contains("{ interp_enc }"),
+            "Missing interp_enc placeholder"
+        );
+        assert!(
+            tmpl.contains("{ interp_mask }"),
+            "Missing interp_mask placeholder"
+        );
     }
 
     #[test]
@@ -849,7 +891,8 @@ mod tests {
         let (body, stored_hash) = data.split_at(data.len() - 32);
         let computed = sha256(body);
         assert_eq!(
-            &computed[..], stored_hash,
+            &computed[..],
+            stored_hash,
             "Appended checksum should match SHA-256 of binary body"
         );
 
