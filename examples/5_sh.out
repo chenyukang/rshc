@@ -60,20 +60,27 @@ impl Arc4 {
 }
 
 fn run_process(iterp: &String, prog: &String, args: &Vec<String>) {
-    let prog = format!("{}", prog.to_owned());
-    //println!("{}", prog);
-    let opt = if iterp == "ruby" { "-e" } else { "-c" };
-    let output = Command::new(iterp)
-        .arg(opt)
-        .arg(prog)
+    let mut cmd = Command::new(iterp);
+    if iterp == "ruby" || iterp.contains("python") {
+        cmd.arg("-");
+    } else if iterp == "expect" {
+        cmd.arg("-f").arg("-");
+    } else {
+        cmd.arg("-s");
+    }
+    let mut child = cmd
         .args(args)
-        .stdin(Stdio::inherit())
+        .stdin(Stdio::piped())
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
-        .output()
+        .spawn()
         .expect("failed to execute process");
-    //println!("status: {}", output.status.code().unwrap());
-    std::process::exit(output.status.code().unwrap());
+    {
+        let stdin = child.stdin.as_mut().expect("Failed to open stdin");
+        stdin.write_all(prog.as_bytes()).expect("Failed to write to stdin");
+    }
+    let status = child.wait().expect("Failed to wait on child");
+    std::process::exit(status.code().unwrap());
 }
 
 fn main() {
