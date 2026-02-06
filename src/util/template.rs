@@ -8,6 +8,27 @@ use std::process;
 use std::process::{Command, Stdio};
 use std::env;
 
+/// Zero out a byte slice using volatile writes to prevent compiler optimization
+fn secure_zero(buf: &mut [u8]) {
+    for byte in buf.iter_mut() {
+        unsafe { std::ptr::write_volatile(byte, 0); }
+    }
+}
+
+/// Zero out a Vec<u8> and drop it
+fn secure_zero_vec(v: &mut Vec<u8>) {
+    secure_zero(v.as_mut_slice());
+    v.clear();
+}
+
+/// Zero out a String's underlying buffer and drop it
+fn secure_zero_string(s: &mut String) {
+    unsafe {
+        secure_zero(s.as_bytes_mut());
+    }
+    s.clear();
+}
+
 #[cfg(unix)]
 fn read_password_masked() -> String {
     use std::os::unix::io::AsRawFd;
@@ -129,6 +150,17 @@ impl Arc4 {
     pub fn trans_str(&mut self, str: &String) -> Vec<u8> {
         return self.trans_vec(&str.as_bytes().to_vec());
     }
+
+    /// Securely zero out the internal RC4 state
+    pub fn zeroize(&mut self) {
+        for byte in self.state.iter_mut() {
+            unsafe { std::ptr::write_volatile(byte, 0); }
+        }
+        unsafe {
+            std::ptr::write_volatile(&mut self.i, 0);
+            std::ptr::write_volatile(&mut self.j, 0);
+        }
+    }
 }
 
 fn sha256(data: &[u8]) -> [u8; 32] {
@@ -212,33 +244,53 @@ fn run_process(iterp: &String, prog: &String, args: &Vec<String>) {
 
 fn main() {
     let prog = { script_code };
-    let key_mask: Vec<u8> = { key_mask };
-    let key_masked: Vec<u8> = { key_masked };
-    let pass_salt: Vec<u8> = { pass_salt };
+    let mut key_mask: Vec<u8> = { key_mask };
+    let mut key_masked: Vec<u8> = { key_masked };
+    let mut pass_salt: Vec<u8> = { pass_salt };
     let pass_hash: Vec<u8> = { pass_hash };
     let iterp = "{ interp }";
 
     if !pass_hash.is_empty() {
         print!("Password: ");
         io::stdout().flush().ok();
-        let input = read_password_masked();
+        let mut input = read_password_masked();
         let mut data = Vec::new();
         data.extend_from_slice(input.as_bytes());
         data.extend_from_slice(&pass_salt);
-        let input_hash = sha256(&data);
-        if input_hash[..] != pass_hash[..] {
+        let mut input_hash = sha256(&data);
+        let matched = input_hash[..] == pass_hash[..];
+        // Zero sensitive password data immediately
+        secure_zero_string(&mut input);
+        secure_zero_vec(&mut data);
+        secure_zero(&mut input_hash);
+        if !matched {
             println!("Invalid password!");
             process::exit(1);
         }
     }
+    secure_zero_vec(&mut pass_salt);
+
     // Reconstruct key from obfuscated parts
-    let rand_key: Vec<u8> = key_mask.iter().zip(key_masked.iter()).map(|(m, d)| m ^ d).collect();
-    let prog_vec = Arc4::new(&rand_key).trans_vec(&prog);
-    let prog_str = String::from_utf8(prog_vec).unwrap();
-    //println!("running ...:\n {}", prog_str);
+    let mut rand_key: Vec<u8> = key_mask.iter().zip(key_masked.iter()).map(|(m, d)| m ^ d).collect();
+    // Zero key components immediately
+    secure_zero_vec(&mut key_mask);
+    secure_zero_vec(&mut key_masked);
+
+    // Decrypt script
+    let mut cipher = Arc4::new(&rand_key);
+    secure_zero_vec(&mut rand_key);
+    let mut prog_vec = cipher.trans_vec(&prog);
+    cipher.zeroize();
+
+    let mut prog_str = String::from_utf8(prog_vec.clone()).unwrap();
+    secure_zero_vec(&mut prog_vec);
+
     let mut args = env::args().collect::<Vec<_>>();
     args.drain(0..1);
     run_process(&iterp.to_string(), &prog_str, &args);
+
+    // Zero decrypted script (reached only if run_process doesn't exit)
+    secure_zero_string(&mut prog_str);
 }
 "###
 }

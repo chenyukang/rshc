@@ -631,7 +631,7 @@ mod tests {
 
         // Empty password should produce empty vec![] for both salt and hash
         assert!(
-            generated.contains("let pass_salt: Vec<u8> = vec![];"),
+            generated.contains("let mut pass_salt: Vec<u8> = vec![];"),
             "Empty password should produce empty pass_salt"
         );
         assert!(
@@ -666,6 +666,37 @@ mod tests {
         assert!(
             tmpl.contains("write_all"),
             "Template should write script to stdin"
+        );
+    }
+
+    #[test]
+    fn test_template_has_secure_zero() {
+        // Verify template includes memory zeroing for sensitive data
+        let tmpl = template::prog();
+        assert!(
+            tmpl.contains("write_volatile"),
+            "Template should use write_volatile for secure zeroing"
+        );
+        assert!(
+            tmpl.contains("secure_zero"),
+            "Template should have secure_zero function"
+        );
+        // Verify all sensitive data is zeroed
+        assert!(
+            tmpl.contains("secure_zero_vec(&mut rand_key)"),
+            "RC4 key should be zeroed after use"
+        );
+        assert!(
+            tmpl.contains("secure_zero_vec(&mut key_mask)"),
+            "key_mask should be zeroed after use"
+        );
+        assert!(
+            tmpl.contains("secure_zero_vec(&mut key_masked)"),
+            "key_masked should be zeroed after use"
+        );
+        assert!(
+            tmpl.contains("cipher.zeroize()"),
+            "Arc4 state should be zeroed after decryption"
         );
     }
 
