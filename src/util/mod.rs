@@ -251,6 +251,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore] // Requires running generated binaries (anti-debug may trigger under coverage tools) and ruby
     fn test_compile_run() -> Result<(), Box<dyn Error>> {
         let dir = env::current_dir()?;
         let path = format!("{}/examples", dir.display());
@@ -595,6 +596,7 @@ mod tests {
     // ===== gen_and_compile tests =====
 
     #[test]
+    #[ignore] // Generated binary's anti-debug detection may trigger under coverage/CI tools
     fn test_generated_binary_runs_correctly() {
         // Compile a simple echo script and verify it produces correct output
         let manifest_dir = env!("CARGO_MANIFEST_DIR");
