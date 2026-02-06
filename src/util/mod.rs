@@ -122,13 +122,19 @@ pub fn gen_and_compile(file: &str, rs_file: &str, pass: &str) -> Result<(), Box<
     let pass_salt_str = format!("vec!{:?}", pass_salt);
     let pass_hash_str = format!("vec!{:?}", pass_hash);
 
+    // Interpreter string obfuscation: XOR with random mask byte
+    let interp_mask_byte = rand_bytes(1)[0] | 1; // ensure non-zero
+    let interp_enc: Vec<u8> = interp.as_bytes().iter().map(|b| b ^ interp_mask_byte).collect();
+    let interp_enc_str = format!("vec!{:?}", interp_enc);
+
     let prog = template::prog()
         .replace("{ script_code }", &encoded_str)
         .replace("{ key_mask }", &key_mask_str)
         .replace("{ key_masked }", &key_masked_str)
         .replace("{ pass_salt }", &pass_salt_str)
         .replace("{ pass_hash }", &pass_hash_str)
-        .replace("{ interp }", &interp);
+        .replace("{ interp_enc }", &interp_enc_str)
+        .replace("{ interp_mask }", &format!("0x{:02x}", interp_mask_byte));
 
     File::create(rs_file)?.write_all(prog.as_bytes())?;
     compile_it(&rs_file.to_string());
@@ -652,7 +658,8 @@ mod tests {
         assert!(tmpl.contains("{ key_masked }"), "Missing key_masked placeholder");
         assert!(tmpl.contains("{ pass_salt }"), "Missing pass_salt placeholder");
         assert!(tmpl.contains("{ pass_hash }"), "Missing pass_hash placeholder");
-        assert!(tmpl.contains("{ interp }"), "Missing interp placeholder");
+        assert!(tmpl.contains("{ interp_enc }"), "Missing interp_enc placeholder");
+        assert!(tmpl.contains("{ interp_mask }"), "Missing interp_mask placeholder");
     }
 
     #[test]
@@ -723,6 +730,45 @@ mod tests {
         // Clean up
         let _ = fs::remove_file(&out_rs);
         let _ = fs::remove_file("test_no_plain");
+    }
+
+    #[test]
+    fn test_interp_not_plaintext_in_output() {
+        // Verify that interpreter name is XOR-encoded, not plaintext in generated code
+        let manifest_dir = env!("CARGO_MANIFEST_DIR");
+        let script = format!("{}/examples/3.sh", manifest_dir);
+        let out_rs = format!("{}/examples/test_interp_obf.rs", manifest_dir);
+
+        gen_and_compile(&script, &out_rs, "").unwrap();
+
+        let generated = fs::read_to_string(&out_rs).unwrap();
+        // The plaintext interpreter name should NOT appear as a string literal
+        assert!(
+            !generated.contains("\"bash\""),
+            "Generated file should not contain plaintext interpreter string"
+        );
+        // Should use obf_decode instead
+        assert!(
+            generated.contains("obf_decode"),
+            "Generated file should use obf_decode for interpreter"
+        );
+        // Error messages should NOT be plaintext
+        assert!(
+            !generated.contains("\"Password: \""),
+            "Generated file should not contain plaintext Password prompt"
+        );
+        assert!(
+            !generated.contains("\"Invalid password!\""),
+            "Generated file should not contain plaintext error message"
+        );
+        assert!(
+            !generated.contains("\"failed to execute\""),
+            "Generated file should not contain plaintext error message"
+        );
+
+        // Clean up
+        let _ = fs::remove_file(&out_rs);
+        let _ = fs::remove_file("test_interp_obf");
     }
 
     #[test]

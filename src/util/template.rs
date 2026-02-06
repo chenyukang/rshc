@@ -29,6 +29,11 @@ fn secure_zero_string(s: &mut String) {
     s.clear();
 }
 
+/// Decode XOR-obfuscated byte array at runtime
+fn obf_decode(data: &[u8], mask: u8) -> String {
+    String::from_utf8(data.iter().map(|b| b ^ mask).collect()).unwrap_or_default()
+}
+
 /// Anti-debug: detect debuggers and library injection, exit silently if found
 fn detect_debugger() {
     // 1. Check for injected libraries (common hooking technique)
@@ -293,11 +298,19 @@ fn sha256(data: &[u8]) -> [u8; 32] {
     out
 }
 
-fn run_process(iterp: &String, prog: &String, args: &Vec<String>) {
+fn run_process(iterp: &str, prog: &String, args: &Vec<String>) {
     let mut cmd = Command::new(iterp);
-    if iterp == "ruby" || iterp.contains("python") {
+    // Obfuscated interpreter name comparisons
+    let m: u8 = 0x55;
+    let ruby_s: [u8; 4] = [0x27, 0x20, 0x37, 0x3c];
+    let python_s: [u8; 6] = [0x25, 0x2c, 0x21, 0x33, 0x3a, 0x39];
+    let expect_s: [u8; 6] = [0x30, 0x2d, 0x25, 0x30, 0x38, 0x21];
+    let ruby = obf_decode(&ruby_s, m);
+    let python = obf_decode(&python_s, m);
+    let expect = obf_decode(&expect_s, m);
+    if iterp == ruby || iterp.contains(&python) {
         cmd.arg("-");
-    } else if iterp == "expect" {
+    } else if iterp == expect {
         cmd.arg("-f").arg("-");
     } else {
         cmd.arg("-s");
@@ -308,13 +321,13 @@ fn run_process(iterp: &String, prog: &String, args: &Vec<String>) {
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
         .spawn()
-        .expect("failed to execute process");
+        .unwrap_or_else(|_| std::process::exit(1));
     {
-        let stdin = child.stdin.as_mut().expect("Failed to open stdin");
-        stdin.write_all(prog.as_bytes()).expect("Failed to write to stdin");
+        let stdin = child.stdin.as_mut().unwrap_or_else(|| std::process::exit(1));
+        stdin.write_all(prog.as_bytes()).unwrap_or_else(|_| std::process::exit(1));
     }
-    let status = child.wait().expect("Failed to wait on child");
-    std::process::exit(status.code().unwrap());
+    let status = child.wait().unwrap_or_else(|_| std::process::exit(1));
+    std::process::exit(status.code().unwrap_or(1));
 }
 
 fn main() {
@@ -325,10 +338,15 @@ fn main() {
     let mut key_masked: Vec<u8> = { key_masked };
     let mut pass_salt: Vec<u8> = { pass_salt };
     let pass_hash: Vec<u8> = { pass_hash };
-    let iterp = "{ interp }";
+    // Interpreter stored as XOR-encoded bytes
+    let interp_enc: Vec<u8> = { interp_enc };
+    let interp_mask: u8 = { interp_mask };
+    let iterp = obf_decode(&interp_enc, interp_mask);
 
     if !pass_hash.is_empty() {
-        print!("Password: ");
+        // Obfuscated prompt
+        let prompt: [u8; 10] = [0xfa, 0xcb, 0xc3, 0xc3, 0xc7, 0xc5, 0xc2, 0xce, 0x8a, 0x80];
+        print!("{}", obf_decode(&prompt, 0xAA));
         io::stdout().flush().ok();
         let mut input = read_password_masked();
         let mut data = Vec::new();
@@ -341,7 +359,9 @@ fn main() {
         secure_zero_vec(&mut data);
         secure_zero(&mut input_hash);
         if !matched {
-            println!("Invalid password!");
+            // Obfuscated error
+            let err: [u8; 17] = [0xe3, 0xc6, 0xc4, 0xcb, 0xc8, 0xc3, 0xce, 0x8a, 0xda, 0xcb, 0xc3, 0xc3, 0xc7, 0xc5, 0xc2, 0xce, 0x8b];
+            println!("{}", obf_decode(&err, 0xAA));
             process::exit(1);
         }
     }
