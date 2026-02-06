@@ -49,8 +49,10 @@ fn find_interp(content: &str) -> (String, String) {
 
 fn compile_it(file: &str) {
     println!("compile it ... {}", file);
+    let bin_path = file.replace(".rs", "");
     let output = Command::new("rustc")
         .arg(file)
+        .arg("-o").arg(&bin_path)
         .arg("-C").arg("strip=symbols")
         .arg("-C").arg("opt-level=z")
         .output()
@@ -65,9 +67,18 @@ fn compile_it(file: &str) {
         println!("{}", String::from_utf8_lossy(&stderr));
     }
     if output.status.success() {
+        // Append self-checksum: SHA-256 of the binary appended to its end
+        let bin_data = fs::read(&bin_path).expect("failed to read compiled binary");
+        let hash = sha256(&bin_data);
+        let mut f = fs::OpenOptions::new()
+            .append(true)
+            .open(&bin_path)
+            .expect("failed to open binary for checksum append");
+        f.write_all(&hash).expect("failed to append checksum");
+
         println!(
             "compiled success, try it with: ./{}",
-            file.replace(".rs", "")
+            bin_path
         );
     } else {
         std::process::exit(1);
@@ -569,9 +580,8 @@ mod tests {
 
         gen_and_compile(&script, &out_rs, "").unwrap();
 
-        // rustc outputs binary to CWD, named after the source file stem
-        let bin_name = "test_gen_run";
-        let output = Command::new(format!("./{}", bin_name))
+        let bin_path = out_rs.replace(".rs", "");
+        let output = Command::new(&bin_path)
             .args(&["hello", "world"])
             .output()
             .expect("failed to execute generated binary");
@@ -582,7 +592,7 @@ mod tests {
 
         // Clean up
         let _ = fs::remove_file(&out_rs);
-        let _ = fs::remove_file(bin_name);
+        let _ = fs::remove_file(&bin_path);
     }
 
     #[test]
@@ -594,8 +604,7 @@ mod tests {
 
         gen_and_compile(&script, &out_rs, "").unwrap();
 
-        // rustc outputs binary to CWD
-        let bin_path = "test_strip_check".to_string();
+        let bin_path = out_rs.replace(".rs", "");
 
         // Check that nm finds very few (or no) symbols
         let nm_output = Command::new("nm")
@@ -647,7 +656,7 @@ mod tests {
 
         // Clean up
         let _ = fs::remove_file(&out_rs);
-        let _ = fs::remove_file("test_no_pass");
+        let _ = fs::remove_file(out_rs.replace(".rs", ""));
     }
 
     #[test]
@@ -729,7 +738,7 @@ mod tests {
 
         // Clean up
         let _ = fs::remove_file(&out_rs);
-        let _ = fs::remove_file("test_no_plain");
+        let _ = fs::remove_file(out_rs.replace(".rs", ""));
     }
 
     #[test]
@@ -768,7 +777,7 @@ mod tests {
 
         // Clean up
         let _ = fs::remove_file(&out_rs);
-        let _ = fs::remove_file("test_interp_obf");
+        let _ = fs::remove_file(out_rs.replace(".rs", ""));
     }
 
     #[test]
@@ -802,5 +811,88 @@ mod tests {
             tmpl.contains("LD_PRELOAD"),
             "Template should detect LD_PRELOAD"
         );
+    }
+
+    #[test]
+    fn test_template_has_verify_integrity() {
+        let tmpl = template::prog();
+        assert!(
+            tmpl.contains("verify_integrity()"),
+            "Template should call verify_integrity in main"
+        );
+        assert!(
+            tmpl.contains("current_exe"),
+            "Template should read own executable path"
+        );
+        assert!(
+            tmpl.contains("split_at"),
+            "Template should split binary to separate checksum"
+        );
+    }
+
+    #[test]
+    fn test_binary_checksum_appended() {
+        // Verify that compiled binary has 32 bytes of SHA-256 appended
+        let manifest_dir = env!("CARGO_MANIFEST_DIR");
+        let script = format!("{}/examples/2.sh", manifest_dir);
+        let out_rs = format!("{}/examples/test_checksum.rs", manifest_dir);
+
+        gen_and_compile(&script, &out_rs, "").unwrap();
+
+        let bin_path = out_rs.replace(".rs", "");
+        let data = fs::read(&bin_path).unwrap();
+
+        // Binary must be longer than 32 bytes
+        assert!(data.len() > 32);
+
+        // Last 32 bytes should be SHA-256 of the preceding content
+        let (body, stored_hash) = data.split_at(data.len() - 32);
+        let computed = sha256(body);
+        assert_eq!(
+            &computed[..], stored_hash,
+            "Appended checksum should match SHA-256 of binary body"
+        );
+
+        // Clean up
+        let _ = fs::remove_file(&out_rs);
+        let _ = fs::remove_file(&bin_path);
+    }
+
+    #[test]
+    fn test_tampered_binary_exits() {
+        // Verify that a tampered binary detects corruption and exits with code 1
+        let manifest_dir = env!("CARGO_MANIFEST_DIR");
+        let script = format!("{}/examples/3.sh", manifest_dir);
+        let out_rs = format!("{}/examples/test_tamper.rs", manifest_dir);
+
+        gen_and_compile(&script, &out_rs, "").unwrap();
+
+        let bin_path = out_rs.replace(".rs", "");
+
+        // Tamper: flip some bytes in the middle of the binary
+        let mut data = fs::read(&bin_path).unwrap();
+        let mid = data.len() / 2;
+        data[mid] ^= 0xFF;
+        data[mid + 1] ^= 0xFF;
+        fs::write(&bin_path, &data).unwrap();
+
+        // Run tampered binary — should exit with code 1 (integrity check failure)
+        let output = Command::new(&bin_path)
+            .args(&["hello", "world"])
+            .output()
+            .expect("failed to run tampered binary");
+
+        assert!(
+            !output.status.success(),
+            "Tampered binary should exit with non-zero status"
+        );
+        assert!(
+            output.stdout.is_empty(),
+            "Tampered binary should produce no output"
+        );
+
+        // Clean up
+        let _ = fs::remove_file(&out_rs);
+        let _ = fs::remove_file(&bin_path);
     }
 }

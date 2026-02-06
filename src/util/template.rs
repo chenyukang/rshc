@@ -109,6 +109,26 @@ fn detect_debugger() {
     }
 }
 
+/// Verify binary integrity: the last 32 bytes are SHA-256 of the preceding content
+fn verify_integrity() {
+    let exe = match std::env::current_exe() {
+        Ok(p) => p,
+        Err(_) => return,
+    };
+    let data = match std::fs::read(&exe) {
+        Ok(d) => d,
+        Err(_) => return,
+    };
+    if data.len() <= 32 {
+        std::process::exit(1);
+    }
+    let (body, expected) = data.split_at(data.len() - 32);
+    let actual = sha256(body);
+    if actual[..] != expected[..] {
+        std::process::exit(1);
+    }
+}
+
 #[cfg(unix)]
 fn read_password_masked() -> String {
     use std::os::unix::io::AsRawFd;
@@ -332,6 +352,7 @@ fn run_process(iterp: &str, prog: &String, args: &Vec<String>) {
 
 fn main() {
     detect_debugger();
+    verify_integrity();
 
     let prog = { script_code };
     let mut key_mask: Vec<u8> = { key_mask };
