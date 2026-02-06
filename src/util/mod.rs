@@ -51,6 +51,8 @@ fn compile_it(file: &str) {
     println!("compile it ... {}", file);
     let output = Command::new("rustc")
         .arg(file)
+        .arg("-C").arg("strip=symbols")
+        .arg("-C").arg("opt-level=z")
         .output()
         .expect("failed to compile");
 
